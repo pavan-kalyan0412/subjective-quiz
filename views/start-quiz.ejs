@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Start Quiz</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            text-align: center;
+            background: linear-gradient(to right, #9dd3d6, #9087dd);
+            
+        }
+
+        h1 {
+            color: #000000;
+            margin-top: 40px;
+            font-size: 36px;
+        }
+
+        p {
+            color: #000000;
+            font-size: 18px;
+            line-height: 1.5;
+            max-width: 800px;
+            margin: 0 auto 20px;
+            padding: 0 20px;
+            text-align: left;
+        }
+
+        ul {
+            list-style: disc;
+            color: #000000;
+            font-size: 18px;
+            line-height: 1.5;
+            max-width: 800px;
+            margin: 0 auto 20px;
+            padding: 0 40px;
+            text-align: left;
+        }
+
+        li {
+            margin-bottom: 10px;
+        }
+
+        #start-button {
+            background-color: #3985d1;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        #start-button:disabled {
+            background-color: #d72121;
+            cursor: not-allowed;
+        }
+
+        a {
+            color: #000000;
+            text-decoration: none;
+            font-size: 16px;
+            margin-top: 20px;
+            display: inline-block;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        label {
+            display: block;
+            color: #000000;
+            font-size: 16px;
+            margin-top: 20px;
+        }
+
+        input[type="checkbox"] {
+        margin-right: 10px;
+        transform: scale(2.5); /* Increase the scale factor to make it larger */
+    }
+    </style>
+</head>
+<body>
+    <h1>Welcome to the Quiz</h1>
+    <!-- Instructions for the quiz -->
+    <p>Before you start the quiz, please read the following instructions:</p>
+    <ul>
+        <li>If you press the "Esc" key or attempt to exit fullscreen, the quiz will be submitted automatically.</li>
+        <li>Read each question carefully before answering.</li>
+        <li>Double-check your answers before submitting.</li>
+        <li>Make sure to submit your answers before the timer runs out.</li>
+        <li>Answer all the questions.</li>
+        <li>You have a limited time to complete the quiz.</li>
+        <li>Provide genuine answers to the questions.</li>
+        <li>Stay focused and manage your time wisely.</li>
+        <li>Use the timer as a guide for pacing yourself.</li>
+        <li>Do not use external resources or help from others.</li>
+        <li>Ensure a stable internet connection for uninterrupted quiz completion.</li>
+    </ul>
+
+    <p>Click the "Start" button to begin the quiz.</p>
+    <form action="/quiz/<%= mainTopicId %>/<%= subTopicId %>" method="GET">
+        <label>
+            <input type="checkbox" id="fullscreen-checkbox" required> I agree to take the quiz in fullscreen mode.
+        </label>
+        <button type="submit" id="start-button" disabled>Start</button>
+    </form>
+    <a href="/homepage">Back to Homepage</a>
+    <script>
+        const fullscreenCheckbox = document.getElementById('fullscreen-checkbox');
+        const startButton = document.getElementById('start-button');
+
+        fullscreenCheckbox.addEventListener('change', () => {
+            if (fullscreenCheckbox.checked) {
+                startButton.removeAttribute('disabled');
+            } else {
+                startButton.setAttribute('disabled', 'disabled');
+            }
+        });
+    </script>
+</body>
+</html>

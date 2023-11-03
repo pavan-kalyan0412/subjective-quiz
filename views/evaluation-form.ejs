@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Evaluation Form</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to right, #c2e59c, #947fe7);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-top: 20px;
+        }
+
+        h2, h3 {
+            color: #1496ba;
+        }
+
+        form {
+            background-color: #fff;
+            border-radius: 5px;
+            padding: 20px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+            width: 80%;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        li {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 10px;
+        }
+
+        input[type="textarea"] {
+            width: 95%;
+            padding: 5px;
+            margin-top: 5px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        input[type="number"] {
+            width: 10%;
+            padding: 5px;
+            margin-top: 5px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        button {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        p {
+            text-align: center;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+
+        #totalMarks {
+            color: #007bff;
+        }
+
+        /* Add CSS for centering the textarea elements */
+    .center-textarea {
+        text-align: center;
+    }
+
+    .centered-textarea {
+        margin: 0 auto;
+    }
+
+        /* Center-align the "Marks Secured" input fields */
+        .center-marks-input {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .center-marks-input input[type="number"] {
+            text-align: center;
+            margin: 5px;
+        }
+
+    </style>
+</head>
+<body>
+    <h1>Evaluation Form</h1>
+
+    <h2 style="text-align: center;"><%= submission.userId %></h2>
+    <h3 style="text-align: center;">Main Topic: <%= submission.mainTopicName %></h3>
+    <h3 style="text-align: center;">Sub Topic: <%= submission.subTopicName %></h3>
+
+    <form action="/admin/evaluate/<%= submission._id %>/submit" method="POST">
+        <!-- Display submission data in the form -->
+        <ul>
+            <% let totalMarksSecured = 0; %>
+            <% submission.questions.forEach((question, index) => { %>
+                <li>
+                    <h3 style="text-align: center;">Question <%= index + 1 %>:<%= question.question %></h3>
+                    <div class="center-textarea">
+                        <p><strong>Admin Answer:</strong></p>
+                        <textarea name="adminAnswers[<%= index %>]" rows="4" cols="50" class="centered-textarea" readonly><%= question.adminAnswer %></textarea>
+                    </div>
+                    <div class="center-textarea">
+                        <p><strong>User Answer:</strong></p>
+                        <textarea name="userAnswers[<%= index %>]" rows="4" cols="50" class="centered-textarea" readonly><%= question.userAnswer %></textarea>
+                    </div>
+                    <p><strong>Marks Allotted:</strong> <%= question.marks %> Marks</p>
+                    <div class="center-marks-input">
+                        <label for="marksSecured_<%= index %>">Marks Secured:</label>
+                        <input type="number" name="evaluations[<%= index %>]" id="marksSecured_<%= index %>" min="0" max="<%= question.marks %>" oninput="limitMarks(this, <%= question.marks %>)" required>
+                    </div>
+                    <div class="center-textarea">
+                        <textarea name="evaluations[<%= index %>]" rows="4" cols="50" class="centered-textarea" required></textarea>
+                    </div>
+                    
+                    <% totalMarksSecured += (evaluations[index] ? parseInt(evaluations[index]) : 0); %>
+                </li>
+            <% }); %>
+        </ul>
+    
+        <input type="hidden" name="totalMarksSecured" id="totalMarksSecured">
+        
+        <button type="submit" style="display: block; margin: 0 auto;">Save Evaluation</button>
+
+    </form>
+
+    <p>Total Marks Secured: <span id="totalMarks"><%= totalMarksSecured %></span> out of <%= submission.questions.reduce((total, question) => total + question.marks, 0) %> Marks</p>
+
+    <script>
+        function limitMarks(input, maxMarks) {
+            const enteredMarks = parseInt(input.value);
+            if (enteredMarks > maxMarks) {
+                input.value = maxMarks; // Reset to the maximum marks allotted
+            }
+        }
+
+        const evaluations = document.querySelectorAll('input[name^="evaluations"]');
+        const totalMarks = document.getElementById('totalMarks');
+        const totalMarksSecuredInput = document.getElementById('totalMarksSecured');
+        
+        evaluations.forEach(input => {
+            input.addEventListener('input', () => {
+                let total = 0;
+                evaluations.forEach(input => {
+                    if (input.value !== '') {
+                        total += parseInt(input.value);
+                    }
+                });
+                totalMarks.textContent = total;
+                
+                // Set the value of the hidden input field to the calculated total
+                totalMarksSecuredInput.value = total;
+            });
+        });
+    </script>
+</body>
+</html>

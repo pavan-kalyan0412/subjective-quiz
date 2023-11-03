@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Evaluation Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to right, #c2e59c, #64b3f4);
+        }
+
+        h1 {
+            text-align: center;
+            margin-top: 20px;
+            color: #333;
+        }
+
+        a.back-link {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            text-decoration: none;
+            color: #000000;
+            font-weight: bold;
+        }
+
+        a.back-link:hover {
+            text-decoration: underline;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 80%;
+            margin: 20px auto;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #007BFF;
+            color: #fff;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        tr:hover {
+            background-color: #ddd;
+        }
+
+        .status-evaluated {
+            color: green;
+            font-weight: bold;
+        }
+
+        .status-not-evaluated {
+            color: red;
+            font-weight: bold;
+        }
+
+        .action-link {
+            text-decoration: none;
+            color: #007BFF;
+            font-weight: bold;
+        }
+
+        .action-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <h1>Evaluation Page</h1>
+    <a class="back-link" href="/admin/dashboard">Back to Dashboard</a>
+
+    <table border="1">
+        <tr>
+            <th>User Email</th>
+            <th>Main Topic</th>
+            <th>Sub Topic</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+        <% submissions.forEach(submission => { %>
+            <tr>
+                <td><%= submission.userId %></td>
+                <td><%= submission.mainTopicName %></td>
+                <td><%= submission.subTopicName %></td>
+                <td>
+                    <% if (submission.isEvaluated) { %>
+                        <span class="status-evaluated">Evaluated</span>
+                    <% } else { %>
+                        <span class="status-not-evaluated">Not Evaluated</span>
+                    <% } %>
+                </td>
+                <td>
+                    <a class="action-link" href="/admin/evaluate/<%= submission._id %>">Evaluate</a>
+                </td>
+            </tr>
+        <% }); %>
+    </table>
+</body>
+</html>

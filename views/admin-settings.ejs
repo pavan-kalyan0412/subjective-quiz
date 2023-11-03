@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Settings</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+      margin: 30px;
+      padding: 2px;
+      background: linear-gradient(to right, #0d6385, #cf8b8b);
+    }
+
+    h1 {
+      font-size: 24px;
+      color: #ffffff;
+      text-align: center;
+    }
+
+    form {
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    div {
+      margin-bottom: 15px;
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+
+    span.error {
+      color: red;
+      font-size: 14px;
+      margin-top: 5px;
+      display: block;
+    }
+
+    button[type="submit"] {
+      background-color: #007BFF;
+      color: #fff;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+
+    button[type="submit"]:hover {
+      background-color: #0056b3;
+    }
+
+    #successMessage {
+      color: green;
+      text-align: center;
+      margin-top: 15px;
+    }
+
+    a {
+      display: block;
+      text-align: center;
+      margin-top: 15px;
+      text-decoration: none;
+      color: #007BFF;
+    }
+  </style>
+</head>
+<body>
+  <h1>Admin Settings</h1>
+
+  <form action="/admin/update-settings" method="POST" onsubmit="return validateForm(event)">
+    <div>
+      <label for="newUsername">New Username (Email):</label>
+      <input type="text" id="newUsername" name="newUsername" required>
+      <span id="usernameError" class="error"></span>
+    </div>
+
+    <div>
+      <label for="newPassword">New Password:</label>
+      <input type="password" id="newPassword" name="newPassword" required>
+      <span id="passwordError" class="error"></span>
+    </div>
+
+    <div>
+      <label for="confirmPassword">Confirm Password:</label>
+      <input type="password" id="confirmPassword" name="confirmPassword" required>
+      <span id="confirmPasswordError" class="error"></span>
+    </div>
+
+    <div>
+      <button type="submit">Save Changes</button>
+    </div>
+  </form>
+
+  <!-- <div id="successMessage"></div> -->
+
+
+  <script>
+    function validateForm(event) {
+      var newUsername = document.getElementById("newUsername").value;
+      var newPassword = document.getElementById("newPassword").value;
+      var confirmPassword = document.getElementById("confirmPassword").value;
+      var usernameError = document.getElementById("usernameError");
+      var passwordError = document.getElementById("passwordError");
+      var confirmPasswordError = document.getElementById("confirmPasswordError");
+      // var successMessage = document.getElementById("successMessage");
+
+      // Check if the entered value for newUsername is a valid email address
+      if (!isValidEmail(newUsername)) {
+        usernameError.textContent = "Please enter a valid email address as the username.";
+        successMessage.textContent = ""; // Clear any previous success message
+        event.preventDefault(); // Prevent form submission
+        event.preventDefault(); // Prevent form submission
+        return false;
+      } else {
+        usernameError.textContent = "";
+      }
+
+      if (newPassword.length < 8) {
+        passwordError.textContent = "New Password must be at least 8 characters long.";
+        successMessage.textContent = ""; // Clear any previous success message
+        event.preventDefault(); // Prevent form submission
+        return false;
+      } else {
+        passwordError.textContent = "";
+      }
+
+      if (newPassword !== confirmPassword) {
+        confirmPasswordError.textContent = "Confirm Password does not match.";
+        successMessage.textContent = ""; // Clear any previous success message
+        event.preventDefault(); // Prevent form submission
+        return false;
+      } else {
+        confirmPasswordError.textContent = "";
+      }
+
+      // Display success message
+      successMessage.textContent = "Changes saved successfully!";
+      return true;
+    }
+
+    function isValidEmail(email) {
+      // Basic email validation using a regular expression
+      var emailPattern = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,4}$/;
+      return emailPattern.test(email);
+    }
+  </script>
+</body>
+</html>

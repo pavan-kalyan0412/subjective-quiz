@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Admin Dashboard</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #a7d6e9;
+      margin: 30px;
+      padding: 2px;
+      background: linear-gradient(to right, #bfe57c, #000000);
+   }
+
+    .add-main-button {
+      background-color: #28a745;
+      color: #fff;
+      padding: 10px;
+      text-decoration: none;
+    }
+
+    .add-sub-button {
+      background-color: #0b94a6;
+      color: #fff;
+      display: inline-block;
+      padding: 10px;
+      margin-top: 10px;
+      text-decoration: none;
+    }
+    .sub-topic {
+      margin-bottom: 10px;
+    }
+
+    /* Add space between subtopic links */
+    .sub-topic-actions {
+      margin-top: 5px;
+    }
+
+    .delete-button {
+      background-color: rgb(183, 123, 80);
+      color: #fff;
+      padding: 5px 10px;
+      border-radius: 5px;
+    }
+
+    .evaluate-button {
+      background-color: #007BFF;
+      color: #fff;
+      padding: 10px 20px;
+      text-decoration: none;
+      border-radius: 5px;
+      display: inline-block;
+      margin-right: 10px;
+      margin-top: 20px;
+    }
+
+    .evaluate-button:hover {
+      background-color: #0056b3;
+    }
+
+    .view-evaluation-button {
+      background-color: #007BFF;
+      color: #fff;
+      padding: 10px 20px;
+      text-decoration: none;
+      border-radius: 5px;
+      display: inline-block;
+      margin-top: 10px;
+    }
+
+    .view-evaluation-button:hover {
+      background-color: #0056b3;
+    }
+
+    .logout-button {
+      background-color: #dc3545;
+      color: #fff;
+      padding: 10px 20px;
+      text-decoration: none;
+      border-radius: 5px;
+      display: inline-block;
+      margin-top: 10px;
+    }
+
+    .logout-button:hover {
+      background-color: #a71d2a;
+    }
+   
+
+    .settings-button {
+      background-color: #007BFF;
+      color: #fff;
+      padding: 10px 20px;
+      text-decoration: none;
+      border-radius: 5px;
+      position: absolute;
+      top: 10px;
+      right: 10px;
+    }
+
+    .settings-button:hover {
+      background-color: #0056b3;
+    }
+
+  
+
+    .main-topic {
+      display: inline-block;
+      font-weight: bold;
+      vertical-align: middle;
+    }
+
+    .delete-button {
+      display: inline-block;
+      vertical-align: middle;
+    }
+
+    .clear {
+      clear: both;
+    }
+    .view-questions-button{
+      color:#ffffff;
+      background-color: #000000;
+    }
+    .add-questions-button{
+      color:#ffffff;
+      background-color: #000000;
+    }
+
+    .delete-topic-button{
+      color:#ffffff;
+      background-color: #000000;
+    }
+  </style>
+</head>
+<body>
+  <h1>Welcome, Admin!</h1>
+
+  <h2>Added Main Topics:</h2>
+  <ul>
+    <% mainTopics.forEach(topic => { %>
+      <li class="topic-container">
+        <strong class="main-topic"><%= topic.mainTopic %></strong>
+        
+        <form action="/admin/delete-main-topic/<%= topic._id %>" method="POST" onsubmit="return confirmDelete('<%= topic.subTopics.length %> subtopics');">
+          <input type="hidden" name="_method" value="DELETE">
+          <button class="delete-button" type="submit">Delete Main Topic</button>
+        </form>
+
+        <ol>
+          <% topic.subTopics.forEach(subTopic => { %>
+            <li class="sub-topic">
+              <%= subTopic.subTopic %>
+              <div class="sub-topic-actions">
+                <button class="add-questions-button" onclick="location.href='/admin/add-questions/<%= topic._id %>/<%= subTopic._id %>'">Add Questions</button>
+                <button class="view-questions-button" onclick="location.href='/admin/view-questions/<%= topic._id %>/<%= subTopic._id %>'">View Questions</button>
+                <button class="delete-topic-button" onclick="location.href='/admin/confirm-delete-subtopic/<%= topic._id %>/<%= subTopic._id %>'">Delete</button>
+              </div>
+            </li>
+          <% }); %>
+        </ol>
+        <a class="add-sub-button" href="/admin/add-subtopic/<%= topic._id %>">Add Subtopic</a>
+        <div class="clear"></div>
+      </li>
+    <% }); %>
+  </ul>
+  <a class="add-main-button" href="/admin/add-main-topic">Add Main Topic</a><br/>
+
+  <a class="evaluate-button" href="/admin/evaluation">
+    Evaluate
+    <% if (notEvaluatedCount > 0) { %>
+      <span style="margin-left: 5px; background-color: red; color: white; padding: 2px 5px; border-radius: 5px;">
+        <%= notEvaluatedCount %>
+      </span>
+    <% } %>
+  </a>
+  <a class="view-evaluation-button" href="/admin/view-evaluation">View Evaluation</a>
+  <a class="settings-button" href="/admin/settings">Settings</a>
+
+  <form action="/admin/logout" method="POST">
+    <button class="logout-button" type="submit">Logout</button>
+  </form>
+
+  <script>
+    function confirmDelete(subtopicCount) {
+      return confirm(`Are you sure you want to delete this main topic? There are ${subtopicCount} subtopics associated with it. Deleting the main topic will also delete all subtopics.`);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Add Main Topic</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #ffffff;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(to right, #37aad7, #000000);
+    }
+
+    h1 {
+      text-align: center;
+      color: #0fd37e;
+      margin-top: 20px;
+    }
+
+    form {
+      background-color: #fff;
+      border-radius: 5px;
+      padding: 20px;
+      box-shadow: 0px 0px 10px rgba(136, 51, 18, 0.2);
+      width: 300px; /* Increase the width */
+      margin: 0 auto;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+
+    input[type="text"] {
+      width: 90%;
+      padding: 10px; /* Increase the padding */
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+    }
+
+    /* Use flexbox to align buttons on the same line */
+    .button-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    button.cancel {
+      background-color: #ccc;
+      color: #230456;
+      margin-right: 10px;
+    }
+
+    button:hover {
+      background-color: #79d7bb;
+    }
+  </style>
+</head>
+<body>
+  <h1>Add Main Topic</h1>
+  <form action="/admin/add-main-topic" method="post">
+    <label>Main Topic:</label>
+    <input type="text" name="mainTopic" required><br>
+
+    <!-- Button container for both buttons -->
+    <div class="button-container">
+      <button type="submit">Add Main Topic</button>
+      <button type="button" class="cancel" onclick="window.location.href='/admin/dashboard'">Cancel</button>
+    </div>
+  </form>
+</body>
+</html>

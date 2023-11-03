@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Add Questions and Answers</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #ffffff;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(to right, #37aad7, #000000);
+    }
+
+    h1 {
+      text-align: center;
+      color: #0fd37e;
+      margin-top: 20px;
+    }
+
+    form {
+      background-color: #92bde9;
+      border-radius: 5px;
+      padding: 20px;
+      box-shadow: 0px 0px 10px rgba(136, 51, 18, 0.2);
+      width: 600px;
+      margin: 0 auto;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+
+    textarea,
+    input[type="number"] {
+      width: 95%;
+      padding: 5px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+    }
+
+    /* Use flexbox to align buttons on the same line */
+    .button-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    button.add-question,
+    button.save-questions,
+    button.cancel {
+      background-color: #e01979;
+      color: #fff;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+
+    button.cancel {
+      background-color: #ccc;
+      color: #230456;
+    }
+
+    button:hover {
+      background-color: #2d7878;
+    }
+
+    input[name="timers[]"],
+  input[name="marks[]"] {
+    width: 70px; /* Adjust the width as needed */
+    padding: 5px;
+  }
+  </style>
+</head>
+<body>
+  <h1>Add Questions and Answers</h1>
+  <form action="/admin/save-questions" method="post">
+    <input type="hidden" name="mainTopicId" value="<%= mainTopicId %>">
+    <input type="hidden" name="subTopicId" value="<%= subTopicId %>">
+
+    <!-- Container for dynamically added questions -->
+    <div id="questions-container">
+      <!-- Initial question fields -->
+      <div class="question">
+        <label for="question">Question:</label>
+        <textarea name="questions[]" rows="4" cols="50" required></textarea><br>
+
+        <label for="answer">Answer:</label>
+        <textarea name="answers[]" rows="4" cols="50" required></textarea><br>
+
+        <label for="timer">Timer Duration (minutes):</label>
+        <input type="number" name="timers[]" required min="0"><br>
+
+        <label for="marks">Marks:</label>
+        <input type="number" name="marks[]" required min="0"><br>
+      </div>
+    </div>
+
+    <!-- Button container for both buttons -->
+    <div class="button-container">
+      <button type="button" class="add-question">Add some more Question</button>
+      <button type="submit" class="save-questions">Save Questions</button>
+    </div>
+    
+    <br/>
+    <a href="/admin/dashboard">Back to dashboard</a>
+  </form>
+
+  <script>
+    // JavaScript code for adding more question fields
+    document.querySelector('button.add-question').addEventListener('click', function () {
+      const container = document.getElementById('questions-container');
+      const newQuestionDiv = document.createElement('div');
+      newQuestionDiv.classList.add('question');
+
+      newQuestionDiv.innerHTML = `
+        <label for="question">Question:</label>
+        <textarea name="questions[]" rows="4" cols="50" required></textarea><br>
+
+        <label for="answer">Answer:</label>
+        <textarea name="answers[]" rows="4" cols="50" required></textarea><br>
+
+        <label for="timer">Timer Duration (minutes):</label>
+        <input type="number" name="timers[]" required><br>
+
+        <label for="marks">Marks:</label>
+        <input type="number" name="marks[]" required><br>
+        
+        <!-- Button to remove this question -->
+        <button type="button" class="remove-question">Remove</button>
+      `;
+
+      container.appendChild(newQuestionDiv);
+
+      // Add a click event listener for the remove button
+      const removeButton = newQuestionDiv.querySelector('.remove-question');
+      removeButton.addEventListener('click', function () {
+        container.removeChild(newQuestionDiv); // Remove the question div when the button is clicked
+      });
+    });
+  </script>
+</body>
+</html>
