@@ -175,7 +175,6 @@ mongoose.connect("mongodb://localhost:27017/quiz-web", { useNewUrlParser: true, 
   initializeAdmin();
   
 
-
   // Middleware to check if the user is authenticated
 function checkAuthentication(req, res, next) {
   if (!req.session.email) {
@@ -265,7 +264,6 @@ app.post('/admin-login', async (req, res) => {
 });
 
 
-
 app.get('/admin/dashboard',checkAdminAuthentication, async (req, res) => {
   try {
     const mainTopics = await MainTopic.find(); // Retrieve main topics from the database
@@ -284,8 +282,6 @@ app.get('/admin/dashboard',checkAdminAuthentication, async (req, res) => {
     res.status(500).send('An error occurred while fetching main topics.');
   }
 });
-
-
 
 
 app.get('/admin/add-main-topic', checkAdminAuthentication, (req, res) => {
