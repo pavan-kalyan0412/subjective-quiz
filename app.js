@@ -201,6 +201,10 @@ const activeQuizSessions = {};
 
   // Register route to display the registration page
 app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/landing.html');
+});
+
+app.get('/register', (req, res) =>{
   res.sendFile(__dirname + '/register.html');
 });
 

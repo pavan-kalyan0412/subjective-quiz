@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Landing Page</title>
+</head>
+<body>
+  <h1>Welcome to the Quiz Portal</h1>
+  <p>Please select your role:</p>
+  <button onclick="redirectTo('/register')">User</button>
+  <button onclick="redirectTo('/admin')">Admin</button>
+
+  <script>
+    function redirectTo(path) {
+      window.location.href = path;
+    }
+  </script>
+</body>
+</html>
