@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Fullscreen Example</title>
+</head>
+<body>
+  <button id="startButton">Start</button>
+
+  <script>
+    // Function to open the page in fullscreen mode
+    function openFullscreen() {
+      const elem = document.documentElement; // Get the root element (usually the <html> element)
+      
+      if (elem.requestFullscreen) {
+        elem.requestFullscreen(); // Standard
+      } else if (elem.mozRequestFullScreen) {
+        elem.mozRequestFullScreen(); // Firefox
+      } else if (elem.webkitRequestFullscreen) {
+        elem.webkitRequestFullscreen(); // Chrome, Safari, and Opera
+      } else if (elem.msRequestFullscreen) {
+        elem.msRequestFullscreen(); // IE/Edge
+      }
+    }
+
+    // Add a click event listener to the "Start" button
+    const startButton = document.getElementById('startButton');
+    startButton.addEventListener('click',hjrfyopenFullscreen);
+  </script>
+</body>
+</html>

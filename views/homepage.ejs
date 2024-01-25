@@ -1,0 +1,101 @@
+<!-- views/homepage.ejs -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Quiz Homepage</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f5f5f5;
+      margin: 30px;
+      padding: 2px;
+      background: linear-gradient(to right, #70e2b5, #4d0d78);
+    }
+  
+    h1 {
+      font-size: 28px; /* Increase font size for the heading */
+      color: #333;
+    }
+  
+    h2 {
+      font-size: 24px; /* Increase font size for the subheading */
+      margin-top: 20px;
+      color: #555;
+    }
+  
+    li {
+      margin: 10px 0;
+      opacity: 0; /* Start with 0 opacity */
+      transform: translateY(10px); /* Move down by 10px */
+      animation: fadeInUp 0.5s ease-in-out forwards; /* Apply animation */
+      font-size: 18px; /* Increase font size for list items */
+    }
+  
+    @keyframes fadeInUp {
+      to {
+        opacity: 1; /* Fade in to full opacity */
+        transform: translateY(0); /* Move up to the original position */
+      }
+    }
+  
+    strong {
+      font-weight: bold;
+    }
+  
+    a {
+      text-decoration: none;
+      color: #ffffff;
+      margin-left: 10px;
+      font-size: 16px; /* Increase font size for links */
+    }
+  
+    a:hover {
+      text-decoration: underline;
+    }
+  
+    button {
+    background-color: #2d430b;
+    color: #ffffff;
+    padding: 8px 20px; /* Increase button size */
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    font-size: 20px; /* Increase font size for buttons */
+  }
+
+    .logout {
+      background-color: rgb(222, 149, 33);
+    }
+
+    .logout {
+    position: absolute;
+    bottom: 10px; /* Adjust the distance from the bottom as needed */
+    right: 10px; /* Adjust the distance from the right as needed */
+  }
+  </style>
+  
+</head>
+<body>
+  <h1>Welcome to the Quiz Homepage, <%= firstName %>!</h1>
+
+  <h2>Available Quiz Topics:</h2>
+  <ol>
+    <% mainTopics.forEach(mainTopic => { %>
+      <li>
+        <strong><%= mainTopic.mainTopic %></strong>
+        <ol>
+          <% mainTopic.subTopics.forEach(subTopic => { %>
+            <li>
+              <%= subTopic.subTopic %>
+              <button><a href="/start-quiz/<%= mainTopic._id %>/<%= subTopic._id %>">Take Quiz</a></button>
+            </li>
+          <% }); %>
+        </ol>
+      </li>
+    <% }); %>
+  </ol>
+  <form method="post" action="/logout">
+    <button class="logout" type="submit">Logout</button>
+  </form>
+</body>
+</html>

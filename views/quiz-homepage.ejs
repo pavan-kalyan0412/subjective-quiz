@@ -1,0 +1,28 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Quiz Homepage</title>
+  <style>
+    /* Your CSS styles here */
+  </style>
+</head>
+<body>
+  <h1>Welcome to the Quiz Homepage</h1>
+    <h2>Choose a Quiz:</h2>
+
+  <% Object.keys(groupedQuizzes).forEach(mainTopic => { %>
+    <h3>Main Topic: <%= mainTopic %></h3>
+    <ul>
+      <% groupedQuizzes[mainTopic].forEach(mainTopic => { %>
+        <li>
+          <h4><a href="/MainTopic/<%= MainTopic._id %>"><%= mainTopic.title %></a></h4>
+          <p><%= quiz.description %></p>
+        </li>
+      <% }); %>
+    </ul>
+  <% }); %>
+
+  <a href="/logout">Logout</a>
+</body>
+</html>

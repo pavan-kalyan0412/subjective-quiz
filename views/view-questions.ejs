@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>View Questions and Answers</title>
+  <style>
+     body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background: linear-gradient(to right, #6db4d0, #aace66);
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    h2, h3 {
+      color: #000000;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      margin-bottom: 20px;
+    }
+
+    textarea {
+      width: 40%;
+      height: 90px; /* You can adjust the height as needed */
+      border: 2px solid #12a6a6;
+      padding: 5px; /* Adjust the horizontal padding as needed */
+      vertical-align: top; /* Align text at the top of the textarea */
+    }
+
+    p {
+      font-weight: bold;
+      margin-top: 20px;
+    }
+
+    a {
+      display: block;
+      margin-top: 20px;
+      text-decoration: none;
+      color: #39094c;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h1>View Questions</h1>
+  <h2>Main Topic: <%= mainTopic.mainTopic %></h2>
+  <h3>Subtopic: <%= subTopic.subTopic %></h3>
+
+  <!-- <% let totalTimer = 0; %>
+   Timer Update Input Field -->
+  <!-- <label for="totalTimerUpdate">Update Total Timer (minutes): </label> -->
+<!-- <input type="number" id="totalTimerUpdate" name="totalTimerUpdate" value="<%= subTopic.totalTimer %>" step="1" min="0"> -->
+<!-- <button onclick="updateTotalTimer('<%= mainTopic._id %>', '<%= subTopic._id %>')">Update</button> -->
+  <ol>
+    <% subTopic.questions.forEach(question => { %>
+      <li>
+        Question: <%= question.question %><br>
+        Timer: <%= question.timer %> minutes<br>
+        Marks: <%= question.marks %><br/>
+        <% totalTimer += question.timer; %>
+        <label for="answer">Answer:</label>
+        <textarea readonly><%= question.answer %></textarea><br>
+      </li>
+    <% }); %>
+  </ol>
+
+  <p>Total Timer Duration for All Questions: <span id="totalTimerValue"><%= totalTimer %></span> minutes</p>
+
+
+  <a href="/admin/dashboard">Back to Dashboard</a>
+
+  <!-- JavaScript functions to update the timer -->
+  <script>
+    function updateTotalTimer(mainTopicId, subTopicId) {
+      const totalTimerUpdate = document.getElementById("totalTimerUpdate").value;
+      
+      // Send an AJAX request to update the total timer
+      fetch(`/admin/update-total-timer/${mainTopicId}/${subTopicId}?totalTimerUpdate=${totalTimerUpdate}`)
+        .then(response => response.json())
+        .then(data => {
+          // Update the total timer value in the DOM
+          const totalTimerValue = document.getElementById("totalTimerValue");
+          if (totalTimerValue) {
+            totalTimerValue.textContent = data.updatedTotalTimer;
+          }
+        })
+        .catch(error => {
+          console.error('Error updating total timer:', error);
+        });
+    }
+  </script>
+</body>
+</html>

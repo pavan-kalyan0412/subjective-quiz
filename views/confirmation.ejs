@@ -1,0 +1,25 @@
+<!-- confirmation.ejs -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Evaluation Confirmation</title>
+</head>
+<body>
+    <h1>Evaluation Confirmation</h1>
+
+    <h2>User: <%= submission.userId %></h2>
+    <h3>Main Topic: <%= submission.mainTopicName %></h3>
+    <h3>Sub Topic: <%= submission.subTopicName %></h3>
+
+    <ul>
+        <% submission.questions.forEach((question, index) => { %>
+            <li>
+                <h3>Question <%= index + 1 %>: <%= question.question %></h3>
+                <p><strong>Admin Answer:</strong> <%= question.adminAnswer %></p>
+                <p><strong>User Answer:</strong> <%= question.userAnswer %></p>
+                <p><strong>Evaluation:</strong> <%= evaluationData[index] %></p>
+            </li>
+        <% }); %>
+    </ul>
+</body>
+</html>
