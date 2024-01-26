@@ -1,42 +1,47 @@
-#Subjective Quiz Examiner
-
-Subjective Quiz Examiner is a web application tailored for educators and quiz administrators. It simplifies the process of conducting and evaluating subjective quizzes, enhancing the overall experience for both examiners and participants.
+# subjective-quiz
 
 ## Overview
 
-Subjective Quiz Examiner provides a user-friendly platform for creating and managing subjective quizzes. It prioritizes efficient question creation, secure quiz administration, and robust evaluation features.
+This is a comprehensive full-stack web application designed for administering subjective quizzes. It includes features such as an intuitive admin dashboard, a user-friendly test-taking interface, and a dynamic evaluation system.
 
 ## Features
 
-1. **Intuitive Quiz Creation:**
-   - Offers an intuitive web interface for creating and managing subjective quizzes, ensuring a seamless experience for quiz administrators.
+- **Admin Dashboard:**
+  - Create, read, update, and delete quiz topics, subtopics, and questions.
+  - Emphasis on coding and documentation best practices for maintaining a clean and efficient content management system.
 
-2. **Secure Authentication:**
-   - Prioritizes data security through a robust user registration and login system, ensuring secure access to quiz administration features.
+- **Test-Taking Interface:**
+  - Designed an innovative test-taking interface that includes a full-screen text submission option to enhance the user experience.
 
-3. **Question Bank Management:**
-   - Facilitates the management of a question bank, allowing administrators to easily organize and reuse questions across multiple quizzes.
+- **Dynamic Evaluation System:**
+  - Administrators can assess user responses and promptly send detailed results to users via email.
+  - Ensures quick and accurate evaluation of user submissions.
 
-4. **Quiz Administration:**
-   - Streamlines the process of quiz administration, providing features for starting, pausing, and ending quizzes with ease.
+- **Collaborative Development:**
+  - Demonstrated strong collaborative skills by addressing backend-related challenges and ensuring optimal server performance.
+  - Collaborated with a team to deliver high-quality code and maintain the application's reliability.
 
-5. **Answer Evaluation:**
-   - Implements an efficient answer evaluation system for subjective questions, enabling examiners to provide detailed feedback and grades.
+- **Quality Assurance:**
+  - Ensured nearly flawless and timely software deployments.
+  - Maintained a commitment to delivering high-quality code to users.
 
-6. **Result Generation:**
-   - Generates detailed and insightful results for each participant, ensuring clarity and transparency in the evaluation process.
+- **User Feedback Integration:**
+  - Incorporated user feedback to continuously improve the application's usability and performance.
+  - Kept the application up to date based on user suggestions and needs.
 
-7. **Technology Stack:**
-   - Backend: Node.js and Express.js
-   - Frontend: HTML, CSS, JavaScript
-   - Database: MongoDB
-   - Version Control: Git and GitHub
+## Technologies Used
 
-## Contact
+- Backend: Node.js and Express.js
+- Frontend: HTML, CSS, JavaScript
+- Database: MongoDB
+- Version Control: Git and GitHub
 
-If you have any questions, feedback, or inquiries, please feel free to reach out:
+Contact
 
-**Project Maintainer:** Pavan Kalyan.S  
-**Email:** pavankalyan.yes@gmail.com
+If you have any questions or feedback, feel free to reach out to us:
 
-Enjoy using the Subjective Quiz Examiner Web Application!
+    Project Maintainer: Pavan kalyan.S
+    Email: pavankalyan.yes@gmail.com
+    Mobile: 8217482247
+
+Enjoy using the Quiz Admin Web Application!
