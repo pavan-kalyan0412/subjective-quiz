@@ -8,6 +8,7 @@ const path = require('path');
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
+
 const PORT = process.env.PORT || 3000;
 const MONGO_URL = process.env.DB_URL;
 
@@ -32,7 +33,14 @@ app.use(session({
   saveUninitialized: true,
 }));
 
-
+const {
+  User,
+  Quiz,
+  MainTopic,
+  Submission,
+  Evaluated,
+  Admin
+} = require('./Models/models')
 
 mongoose.connect(MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => {
@@ -45,118 +53,118 @@ mongoose.connect(MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true })
     console.error("Error connecting to MongoDB:", error);
   });
 
-  const RegisterSchema = new mongoose.Schema({
-    firstName: String,
-    lastName: String,
-    email: String,
-  });
+//   const RegisterSchema = new mongoose.Schema({
+//     firstName: String,
+//     lastName: String,
+//     email: String,
+//   });
 
-  const User = mongoose.model("User", RegisterSchema);
+//   const User = mongoose.model("User", RegisterSchema);
 
-  const QuizSchema = new mongoose.Schema({
-    title: String,
-    description: String,
-    timerDuration: Number,
-    subTopics: [
-      {
-        _id: mongoose.Schema.Types.ObjectId, // Unique ID for the sub-topic
-        description: String
-      }
-    ],
-    questions: [
-      {
-        subTopicId: mongoose.Schema.Types.ObjectId, // Reference to the sub-topic's _id
-        question: String,
-        answer: String,
-        marks: Number,
-      }
-    ]
-  });
+//   const QuizSchema = new mongoose.Schema({
+//     title: String,
+//     description: String,
+//     timerDuration: Number,
+//     subTopics: [
+//       {
+//         _id: mongoose.Schema.Types.ObjectId, // Unique ID for the sub-topic
+//         description: String
+//       }
+//     ],
+//     questions: [
+//       {
+//         subTopicId: mongoose.Schema.Types.ObjectId, // Reference to the sub-topic's _id
+//         question: String,
+//         answer: String,
+//         marks: Number,
+//       }
+//     ]
+//   });
   
-  const Quiz = mongoose.model('Quiz', QuizSchema);
+//   const Quiz = mongoose.model('Quiz', QuizSchema);
 
-  const QuestionSchema = new mongoose.Schema({
-    question: String,
-    answer: String,
-    timer: Number,
-    marks: Number,
-  });
+//   const QuestionSchema = new mongoose.Schema({
+//     question: String,
+//     answer: String,
+//     timer: Number,
+//     marks: Number,
+//   });
 
-  const SubTopicSchema = new mongoose.Schema({
-  subTopic: String,
-  totalTimer: Number,
-  questions: [QuestionSchema] // Array of questions
-});
+//   const SubTopicSchema = new mongoose.Schema({
+//   subTopic: String,
+//   totalTimer: Number,
+//   questions: [QuestionSchema] // Array of questions
+// });
   
-  const MainTopicSchema = new mongoose.Schema({
-    mainTopic: String,
-    subTopics: [SubTopicSchema] // Array of subtopics
-  });
+//   const MainTopicSchema = new mongoose.Schema({
+//     mainTopic: String,
+//     subTopics: [SubTopicSchema] // Array of subtopics
+//   });
   
-  const MainTopic = mongoose.model('MainTopic', MainTopicSchema);
+//   const MainTopic = mongoose.model('MainTopic', MainTopicSchema);
   
-  module.exports = { MainTopic };
+//   module.exports = { MainTopic };
   
-  const submissionSchema = new mongoose.Schema({
-    userId: String,
-    mainTopicId: String,
-    subTopicId: String,
-    mainTopicName: String,
-    subTopicName: String,
-    questions: [{
-      question: String,
-      adminAnswer: String,
-      userAnswer: String,
-      marks: Number,
-    }],
-    isEvaluated: {
-      type: Boolean,
-      default: false, // Set the default value to false
-    },
-  });
+//   const submissionSchema = new mongoose.Schema({
+//     userId: String,
+//     mainTopicId: String,
+//     subTopicId: String,
+//     mainTopicName: String,
+//     subTopicName: String,
+//     questions: [{
+//       question: String,
+//       adminAnswer: String,
+//       userAnswer: String,
+//       marks: Number,
+//     }],
+//     isEvaluated: {
+//       type: Boolean,
+//       default: false, // Set the default value to false
+//     },
+//   });
   
   
-  const Submission = mongoose.model('Submission', submissionSchema);
+//   const Submission = mongoose.model('Submission', submissionSchema);
 
-  const evaluatedSchema = new mongoose.Schema({
-    submissionId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Submission',
-      required: true,
-    },
-    userId: {
-      type: String, // Assuming the user's email is a string
-      required: true,
-    },
-    mainTopicName: {
-      type: String,
-      required: true,
-    },
-    subTopicName: {
-      type: String,
-      required: true,
-    },
-    evaluations: [{
-      question: String,
-      userAnswer: String,
-      adminAnswer: String, // Added field for admin's answer
-      adminEvaluation: [String],
-    }],
-    totalMarksSecured: Number,
-    evaluationDate: {
-      type: Date,
-      default: Date.now // Set the default date to the current date and time
-    }
-  });
+//   const evaluatedSchema = new mongoose.Schema({
+//     submissionId: {
+//       type: mongoose.Schema.Types.ObjectId,
+//       ref: 'Submission',
+//       required: true,
+//     },
+//     userId: {
+//       type: String, // Assuming the user's email is a string
+//       required: true,
+//     },
+//     mainTopicName: {
+//       type: String,
+//       required: true,
+//     },
+//     subTopicName: {
+//       type: String,
+//       required: true,
+//     },
+//     evaluations: [{
+//       question: String,
+//       userAnswer: String,
+//       adminAnswer: String, // Added field for admin's answer
+//       adminEvaluation: [String],
+//     }],
+//     totalMarksSecured: Number,
+//     evaluationDate: {
+//       type: Date,
+//       default: Date.now // Set the default date to the current date and time
+//     }
+//   });
   
-  const Evaluated = mongoose.model('Evaluated', evaluatedSchema);
+//   const Evaluated = mongoose.model('Evaluated', evaluatedSchema);
   
-  const adminSchema = new mongoose.Schema({
-    username: String,
-    password: String,
-  });
+//   const adminSchema = new mongoose.Schema({
+//     username: String,
+//     password: String,
+//   });
   
-  const Admin = mongoose.model('Admin', adminSchema);
+//   const Admin = mongoose.model('Admin', adminSchema);
 
   async function initializeAdmin() {
     try {
@@ -203,6 +211,7 @@ const activeQuizSessions = {};
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/landing.html');
 });
+
 
 app.get('/register', (req, res) =>{
   res.sendFile(__dirname + '/register.html');
@@ -750,13 +759,13 @@ const emailContent = `
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: 'pavankalyan.yes@gmail.com',
-        pass: 'hwcfukpoewkcwlha',
+        user: process.env.user,
+        pass: process.env.pass,
       },
     });
     
     const mailOptions = {
-      from: 'pavankalyan.yes@gmail.com', // Replace with your email address
+      from: process.env.user, // Replace with your email address
       to: submission.userId, // User's registered email address
       subject: 'Quiz Evaluation Results',
       html: emailContent,
