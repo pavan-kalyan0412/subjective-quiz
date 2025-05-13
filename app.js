@@ -438,9 +438,13 @@ app.get('/admin/add-questions/:mainTopicId/:subTopicId', checkAdminAuthenticatio
 
 
 // Update the route to handle multiple file uploads
-app.post('/admin/save-questions', upload.fields([{ name: 'image0' }, { name: 'image1' }, { name: 'image2' }, { name: 'image3' }, { name: 'image4' }]), async (req, res) => {
+app.post('/admin/save-questions', (req, res, next) => {
+  console.log('Incoming files:', req.files);
+  console.log('Incoming body:', req.body);
+  next();
+}, upload.any(), async (req, res) => {
   const { mainTopicId, subTopicId, questions, answers, timers, marks, questionType, options, correctOptionIndex } = req.body;
-  const files = req.files; // Object containing uploaded files (e.g., { image0: [...], image1: [...] })
+  const files = req.files; // Array of all uploaded files
 
   try {
     const mainTopic = await MainTopic.findById(mainTopicId);
@@ -486,9 +490,10 @@ app.post('/admin/save-questions', upload.fields([{ name: 'image0' }, { name: 'im
       } else {
         questionData.answer = answers[i] || '';
         questionData.isCodingQuestion = questionType[i] === 'coding';
-        // Handle image upload for coding questions
-        if (questionType[i] === 'coding' && files[`image${i}`]) {
-          questionData.imageUrl = `/uploads/${files[`image${i}`][0].filename}`;
+        // Find the corresponding file for this question
+        const file = files.find(f => f.fieldname === `image${i}`);
+        if (questionType[i] === 'coding' && file) {
+          questionData.imageUrl = `/uploads/${file.filename}`;
         }
       }
 
