@@ -7,10 +7,50 @@ const mongoose = require("mongoose");
 const path = require('path');
 const nodemailer = require('nodemailer');
 require('dotenv').config();
+const multer = require('multer');
 
+const {exec} = require('child_process');
+const sanitizeFilename = require('sanitize-filename');
+const fsPromises = require('fs').promises;
+const PDFDocument = require('pdfkit');
 
 const PORT = process.env.PORT || 3000;
-const MONGO_URL = process.env.DB_URL;
+// const MONGO_URL = process.env.DB_URL;
+
+
+// Set up storage for uploaded files
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'public/uploads'); // Store images in public/uploads
+  },
+  filename: (req, file, cb) => {
+    cb(null, Date.now() + path.extname(file.originalname)); // Unique filename with timestamp
+  },
+});
+const upload = multer({
+  storage: storage,
+  fileFilter: (req, file, cb) => {
+    const filetypes = /jpeg|jpg|png/;
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = filetypes.test(file.mimetype);
+    if (extname && mimetype) {
+      return cb(null, true);
+    } else {
+      cb('Error: Images only (jpeg, jpg, png)!');
+    }
+  },
+});
+
+
+const uploadDir = './public/uploads';
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Serve static files from public/uploads
+app.use('/uploads', express.static('public/uploads'));
+
+const MONGO_URL = process.env.DB_URL || 'mongodb://localhost:27017/bootcamp';
 
 // Parse incoming requests with JSON payloads
 app.use(bodyParser.json());
@@ -42,16 +82,21 @@ const {
   Admin
 } = require('./Models/models')
 
-mongoose.connect(MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => {
-    console.log("Connected to MongoDB");
+if (!MONGO_URL) {
+  console.error('Error: DB_URL is not defined in the .env file.');
+  process.exit(1);
+}
 
-    // Create an index on the 'email' field to improve query performance
-    User.collection.createIndex({ email: 1 });
-  })
-  .catch((error) => {
-    console.error("Error connecting to MongoDB:", error);
-  });
+// mongoose.connect(MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true })
+//   .then(() => {
+//     console.log('Connected to MongoDB');
+//     // Create an index on the 'email' field to improve query performance
+//     User.collection.createIndex({ email: 1 });
+//   })
+//   .catch((error) => {
+//     console.error('Error connecting to MongoDB:', error.message);
+//     process.exit(1);
+//   });
 
 //   const RegisterSchema = new mongoose.Schema({
 //     firstName: String,
@@ -187,6 +232,17 @@ mongoose.connect(MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true })
   // Call the function to initialize the admin
   initializeAdmin();
   
+
+  mongoose.connect(MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(async () => {
+    console.log('Connected to MongoDB');
+    await User.collection.createIndex({ email: 1 });
+    await initializeAdmin();
+  })
+  .catch((error) => {
+    console.error('Error connecting to MongoDB:', error.message);
+    process.exit(1);
+  });
 
   // Middleware to check if the user is authenticated
 function checkAuthentication(req, res, next) {
@@ -381,49 +437,65 @@ app.get('/admin/add-questions/:mainTopicId/:subTopicId', checkAdminAuthenticatio
 });
 
 
-app.post('/admin/save-questions', async (req, res) => {
-  const { mainTopicId, subTopicId, questions, answers, timers, marks } = req.body;
+// Update the route to handle multiple file uploads
+app.post('/admin/save-questions', upload.fields([{ name: 'image0' }, { name: 'image1' }, { name: 'image2' }, { name: 'image3' }, { name: 'image4' }]), async (req, res) => {
+  const { mainTopicId, subTopicId, questions, answers, timers, marks, questionType, options, correctOptionIndex } = req.body;
+  const files = req.files; // Object containing uploaded files (e.g., { image0: [...], image1: [...] })
 
   try {
     const mainTopic = await MainTopic.findById(mainTopicId);
-
     if (!mainTopic) {
       return res.status(404).send('Main topic not found.');
     }
 
     const subTopic = mainTopic.subTopics.id(subTopicId);
-
     if (!subTopic) {
       return res.status(404).send('Subtopic not found.');
     }
 
-    // Initialize the 'questions' property if it doesn't exist
     if (!subTopic.questions) {
       subTopic.questions = [];
     }
 
-    // Iterate through the arrays and create question objects
     for (let i = 0; i < questions.length; i++) {
-      // Check if the question already exists in any subtopics
       const isQuestionDuplicate = mainTopic.subTopics.some((sub) =>
         sub.questions.some((q) => q.question === questions[i])
       );
-
       if (isQuestionDuplicate) {
-        // Display an alert to the admin and prevent adding the duplicate question
-        return res.send('<script>alert("Question already exists in another subtopic or main topic."); window.location="/admin/add-questions/:mainTopicId/:subTopicId";</script>');
+        return res.send(
+          `<script>alert("Question already exists in another subtopic or main topic."); window.location="/admin/add-questions/${mainTopicId}/${subTopicId}";</script>`
+        );
       }
 
-      subTopic.questions.push({
+      const questionData = {
         question: questions[i],
-        answer: answers[i],
-        timer: timers[i],
-        marks: marks[i],
-      });
+        timer: parseInt(timers[i]) || 0,
+        marks: parseInt(marks[i]) || 0,
+        questionType: questionType[i] || 'subjective',
+      };
+
+      if (questionType[i] === 'mcq') {
+        questionData.options = Array.isArray(options[i]) ? options[i].filter(opt => opt.trim() !== '') : [];
+        questionData.correctOptionIndex = correctOptionIndex[i] ? parseInt(correctOptionIndex[i]) : null;
+        questionData.answer = answers[i] || '';
+        if (questionData.options.length < 2 || questionData.correctOptionIndex === null) {
+          return res.send(
+            `<script>alert("MCQ must have at least 2 valid options and a correct option selected."); window.location="/admin/add-questions/${mainTopicId}/${subTopicId}";</script>`
+          );
+        }
+      } else {
+        questionData.answer = answers[i] || '';
+        questionData.isCodingQuestion = questionType[i] === 'coding';
+        // Handle image upload for coding questions
+        if (questionType[i] === 'coding' && files[`image${i}`]) {
+          questionData.imageUrl = `/uploads/${files[`image${i}`][0].filename}`;
+        }
+      }
+
+      subTopic.questions.push(questionData);
     }
 
     await mainTopic.save();
-
     res.redirect('/admin/dashboard');
   } catch (error) {
     console.error('Error adding questions:', error);
@@ -440,21 +512,17 @@ app.get('/admin/view-questions/:mainTopicId/:subTopicId', checkAdminAuthenticati
 
   try {
     const mainTopic = await MainTopic.findById(mainTopicId);
-
     if (!mainTopic) {
       return res.status(404).send('Main topic not found.');
     }
 
     const subTopic = mainTopic.subTopics.id(subTopicId);
-
     if (!subTopic) {
       return res.status(404).send('Subtopic not found.');
     }
 
-    // Calculate the total timer duration for all questions in this subtopic
-    const totalTimerDuration = subTopic.questions.reduce((total, question) => total + question.timer, 0);
+    const totalTimerDuration = subTopic.questions.reduce((total, question) => total + (question.timer || 0), 0);
 
-    // Render the view-questions.ejs template and pass the subtopic and totalTimerDuration
     res.render('view-questions', { mainTopic, subTopic, totalTimerDuration });
   } catch (error) {
     console.error('Error fetching subtopic:', error);
@@ -541,113 +609,167 @@ app.get('/homepage',checkAuthentication, async (req, res) => {
   }
 });
 
-
-app.get('/quiz/:mainTopicId/:subTopicId',checkAuthentication, async (req, res) => {
+app.get('/quiz/:mainTopicId/:subTopicId', checkAuthentication, async (req, res) => {
   try {
     const { mainTopicId, subTopicId } = req.params;
+    const userId = req.session.email;
 
-    // console.log('mainTopicId:', mainTopicId);
-    // console.log('subTopicId:', subTopicId);
+    // Check if the user has already submitted this quiz
+    const existingSubmission = await Submission.findOne({
+      userId,
+      mainTopicId,
+      subTopicId,
+    });
 
-    // Fetch the main topic and subtopic details from your database
+    if (existingSubmission) {
+      return res.render('quiz-already-submitted', {
+        message: 'You have already submitted this quiz.',
+        mainTopicId,
+        subTopicId,
+      });
+    }
+
     const mainTopic = await MainTopic.findById(mainTopicId);
-
     if (!mainTopic) {
       console.error('Main topic not found for mainTopicId:', mainTopicId);
       return res.status(404).send('Main topic not found.');
     }
 
     const subTopic = mainTopic.subTopics.id(subTopicId);
-
     if (!subTopic) {
       console.error('Subtopic not found for subTopicId:', subTopicId);
       return res.status(404).send('Subtopic not found.');
     }
 
     const totalTimerDuration = subTopic.questions.reduce((total, question) => total + question.timer, 0);
-
-    // Retrieve tpropertiehe questions for the selected subtopic
     const questions = subTopic.questions;
 
-    // Create a 'quiz' object with the necessary properties
     const quiz = {
-      mainTopicId: mainTopicId, // Pass the mainTopicId
-      subTopicId: subTopicId, // Pass the subTopicId
-      title: mainTopic.mainTopic, // You can customize this as needed
-      description: subTopic.subTopic, // You can customize this as needed
-      questions: questions, // Ensure that 'questions' property is correctly assigned
-      totalTimerDuration: totalTimerDuration, // Pass the totalTimerDuration to the quiz page
+      mainTopicId: mainTopicId,
+      subTopicId: subTopicId,
+      title: mainTopic.mainTopic,
+      description: subTopic.subTopic,
+      questions: questions,
+      totalTimerDuration: totalTimerDuration,
       mainTopic: mainTopic,
       subTopic: subTopic,
     };
 
-    // Check if the user is already taking a quiz
-    const userId = req.session.email; // Assuming email is a unique identifier for users
     const isUserTakingQuiz = !!activeQuizSessions[userId];
     let formSubmitted = false;
 
-    // Render the quiz page (quiz1.ejs) and pass the 'quiz' object along with 'questions' and other data
-    res.render('quiz', { quiz, isUserTakingQuiz, userId, formSubmitted }); // Pass isUserTakingQuiz here
+    res.render('quiz', { quiz, isUserTakingQuiz, userId, formSubmitted });
   } catch (error) {
     console.error('Error fetching subtopic:', error);
     res.status(500).send('An error occurred while fetching the subtopic.');
   }
 });
 
+
+
 app.post('/submit', async (req, res) => {
-  const userId = req.session.email; // Assuming you're using the email as a unique identifier for the user
-  const { mainTopicId, subTopicId, userAnswers, marks} = req.body;
-  console.log('firstName after quiz submission:', req.session.firstName);
+  const userId = req.session.email;
+  const { mainTopicId, subTopicId, userAnswers, adminQuestions, adminAnswers, correctOptionIndex, options } = req.body;
 
   try {
-    // Fetch the main topic and subtopic details from your database
-    const mainTopic = await MainTopic.findById(mainTopicId);
+    // Check if the user has already submitted this quiz
+    const existingSubmission = await Submission.findOne({
+      userId,
+      mainTopicId,
+      subTopicId,
+    });
 
+    if (existingSubmission) {
+      return res.send(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Submission Error</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+        </head>
+        <body class="bg-gray-100 flex items-center justify-center min-h-screen">
+            <div class="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center">
+                <h2 class="text-2xl font-semibold text-gray-800 mb-2">Already Submitted!</h2>
+                <p class="text-gray-600 mb-6">You have already submitted this quiz.</p>
+                <a href="/homepage" class="inline-block bg-blue-600 text-white font-medium py-2 px-6 rounded-lg hover:bg-blue-700">Back to Homepage</a>
+            </div>
+        </body>
+        </html>
+      `);
+    }
+
+    const mainTopic = await MainTopic.findById(mainTopicId);
     if (!mainTopic) {
       return res.status(404).send('Main topic not found.');
     }
 
     const subTopic = mainTopic.subTopics.id(subTopicId);
-
     if (!subTopic) {
       return res.status(404).send('Subtopic not found.');
     }
 
-    // Ensure that 'questions' property is correctly assigned in subTopic
     const questions = subTopic.questions;
-
-    // Create an array to store the user's answers along with admin questions and answers
     const submissionData = [];
 
-    // Iterate through the questions, combining user answers with admin questions and answers
     for (let i = 0; i < questions.length; i++) {
+      let userAnswer = '';
+
+      if (questions[i].questionType === 'mcq') {
+        const selectedIndex = userAnswers && userAnswers[i] && !isNaN(parseInt(userAnswers[i]))
+          ? parseInt(userAnswers[i])
+          : null;
+        userAnswer = selectedIndex !== null && questions[i].options[selectedIndex]
+          ? questions[i].options[selectedIndex]
+          : '';
+      } else {
+        userAnswer = userAnswers && userAnswers[i] ? userAnswers[i] : '';
+      }
+
       submissionData.push({
         question: questions[i].question,
-        adminAnswer: questions[i].answer,
-        userAnswer: userAnswers[i],
+        adminAnswer: questions[i].answer || (questions[i].questionType === 'mcq' ? questions[i].options[questions[i].correctOptionIndex] : ''),
+        userAnswer: userAnswer,
         marks: questions[i].marks,
       });
     }
 
-    // Create a new submission in the database
     await Submission.create({
       userId: userId,
       mainTopicId: mainTopicId,
       subTopicId: subTopicId,
-      mainTopicName: mainTopic.mainTopic, // Store the main topic name
-      subTopicName: subTopic.subTopic,    // Store the sub topic name
+      mainTopicName: mainTopic.mainTopic,
+      subTopicName: subTopic.subTopic,
       questions: submissionData,
     });
 
-    // Remove the quiz session from activeQuizSessions
-  delete activeQuizSessions[userId];
+    delete activeQuizSessions[userId];
 
-  res.send(`
-  <div style="font-size: 20px;">
-    <p>Successfully submitted the quiz! Wait for the results via email.</p>
-    <a href="/homepage">Back to Homepage</a>
-  </div>
-`);
+    res.send(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Quiz Submitted</title>
+          <script src="https://cdn.tailwindcss.com"></script>
+      </head>
+      <body class="bg-gray-100 flex items-center justify-center min-h-screen">
+          <div class="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center">
+              <h2 class="text-2xl font-semibold text-gray-800 mb-2">Quiz Submitted!</h2>
+              <p class="text-gray-600 mb-6">Your results will be sent to your email soon.</p>
+              <a href="/homepage" class="inline-block bg-blue-600 text-white font-medium py-2 px-6 rounded-lg hover:bg-blue-700">Back to Homepage</a>
+          </div>
+        <script>
+          window.history.pushState(null, '', '/homepage');
+          window.addEventListener('popstate', () => {
+            window.location.href = '/homepage';
+          });
+        </script>
+      </body>
+      </html>
+    `);
   } catch (error) {
     console.error('Error submitting quiz:', error);
     res.status(500).send('An error occurred while submitting the quiz.');
@@ -671,91 +793,205 @@ app.get('/admin/evaluation', checkAdminAuthentication, async (req, res) => {
 app.get('/admin/evaluate/:submissionId', checkAdminAuthentication, async (req, res) => {
   try {
     const submissionId = req.params.submissionId;
-    
-    // Retrieve the submission data based on the submissionId from the database
+
+    // Validate submissionId
+    if (!mongoose.Types.ObjectId.isValid(submissionId)) {
+      console.warn(`Invalid submissionId: ${submissionId}`);
+      return res.status(400).send('Invalid submission ID.');
+    }
+
+    // Retrieve the submission
     const submission = await Submission.findById(submissionId);
-    
     if (!submission) {
       return res.status(404).send('Submission not found.');
     }
 
     const evaluations = [];
-
-    // Render the evaluation form (evaluation-form.ejs) and pass the submission data
     res.render('evaluation-form', { submission, evaluations });
   } catch (error) {
     console.error('Error fetching submission for evaluation:', error);
-    res.status(500).send('An error occurred while fetching the submission.');
+    res.status(500).send(`An error occurred while fetching the submission: ${error.message}`);
   }
 });
 
+
 app.post('/admin/evaluate/:submissionId/submit', async (req, res) => {
   const submissionId = req.params.submissionId;
-  const evaluations = req.body.evaluations; // This will contain the evaluations for each question
-  // const evaluationData = req.body.evaluations;
-  const totalMarksSecured = parseInt(req.body.totalMarksSecured); // New input field for Total Marks Secured
-  
-  try {
-    // Fetch the submission from the database using the submissionId
-    const submission = await Submission.findById(submissionId);
+  const evaluations = req.body.evaluations;
+  const totalMarksSecured = parseInt(req.body.totalMarksSecured);
 
+  try {
+    const submission = await Submission.findById(submissionId);
     if (!submission) {
       return res.status(404).send('Submission not found.');
     }
 
-    // Create an array to store the evaluated data
-    const evaluatedData = [];
+    const mainTopic = await MainTopic.findById(submission.mainTopicId);
+    if (!mainTopic) {
+      return res.status(404).send('Main topic not found.');
+    }
+    const subTopic = mainTopic.subTopics.id(submission.subTopicId);
+    if (!subTopic) {
+      return res.status(404).send('Subtopic not found.');
+    }
 
-    // Iterate through the questions and add evaluated data for each question
-    submission.questions.forEach((question, index) => {
-      evaluatedData.push({
+    const questionMap = {};
+    subTopic.questions.forEach((q) => {
+      questionMap[q.question] = {
+        isCodingQuestion: q.isCodingQuestion,
+        questionType: q.questionType,
+        options: q.options,
+        correctOptionIndex: q.correctOptionIndex,
+        marks: q.marks,
+        imageUrl: q.imageUrl,
+        answer: q.answer, // Include admin answer for subjective/coding
+      };
+    });
+
+    let totalMarksAllotted = 0;
+    const evaluatedData = submission.questions.map((question, index) => {
+      const qData = questionMap[question.question] || {};
+      let userOptionIndex = null;
+      if (qData.questionType === 'mcq' && question.userAnswer) {
+        userOptionIndex = qData.options?.indexOf(question.userAnswer);
+      }
+      totalMarksAllotted += qData.marks || 0;
+
+      return {
         question: question.question,
         adminAnswer: question.adminAnswer,
         userAnswer: question.userAnswer,
-        adminEvaluation: evaluations[index], // Admin's evaluation for the question
-      });
+        adminEvaluation: parseInt(evaluations[index]) || 0,
+        marks: qData.marks || 0,
+        isCodingQuestion: qData.isCodingQuestion || false,
+        questionType: qData.questionType || 'subjective',
+        options: qData.options || [],
+        correctOptionIndex: qData.correctOptionIndex,
+        userOptionIndex: userOptionIndex,
+      };
     });
 
-    
-    // Create a new "Evaluated" document and save it to the database
     await Evaluated.create({
       submissionId: submissionId,
-      userId: submission.userId, // User's email
+      userId: submission.userId,
       mainTopicName: submission.mainTopicName,
       subTopicName: submission.subTopicName,
       evaluations: evaluatedData,
       totalMarksSecured: totalMarksSecured,
+      totalMarksAllotted: totalMarksAllotted,
     });
 
-    // Inside the /admin/evaluate/:submissionId/submit route handler
-await Submission.findByIdAndUpdate(submissionId, { isEvaluated: true });
+    await Submission.findByIdAndUpdate(submissionId, { isEvaluated: true });
 
+    const percentage = totalMarksAllotted > 0 ? Math.round((totalMarksSecured / totalMarksAllotted) * 100) : 0;
 
-const emailContent = `
-<h1>Quiz Evaluation Results</h1>
-<p>Here are the evaluated results for your submission:</p>
-<table border="1">
-  <tr>
-    <th>Question</th>
-    <th>Your Answer</th>
-    <th>Allotted Marks</th>
-    <th>Marks Secured</th>
-  </tr>
-  ${submission.questions.map((question, index) => `
-    <tr>
-      <td>${question.question}</td>
-      <td>${question.userAnswer}</td>
-      <td>${question.marks}</td>
-      <td>${evaluations[index]}</td>
-    </tr>
-  `).join('')}
-  <tr>
-  <td colspan="3">Total Marks Secured:</td>
-  <td>${totalMarksSecured}</td>
-</tr>
-</table>
-`;
+    // Generate PDF using pdfkit
+    const safeUserId = sanitizeFilename(submission.userId.replace(/[@.]/g, '_'));
+    const pdfFileName = `evaluation_${submissionId}_${safeUserId}.pdf`;
+    const tempDir = path.join(__dirname, 'temp');
+    await fsPromises.mkdir(tempDir, { recursive: true });
+    const pdfPath = path.join(tempDir, pdfFileName);
 
+    const doc = new PDFDocument({ margin: 40 });
+    const stream = require('fs').createWriteStream(pdfPath);
+    doc.pipe(stream);
+
+    // Cover Page
+    doc.fillColor('#1E90FF').fontSize(28).font('Helvetica-Bold').text('Quiz Evaluation Results', { align: 'center' });
+    doc.moveDown(2);
+    doc.fillColor('black').fontSize(16).font('Helvetica').text(`Candidate: ${submission.userId}`, { align: 'center' });
+    doc.text(`Main Topic: ${submission.mainTopicName}`, { align: 'center' });
+    doc.text(`Sub Topic: ${submission.subTopicName}`, { align: 'center' });
+    doc.moveDown(1);
+    doc.fillColor('#4682B4').fontSize(14).text(`Total Marks: ${totalMarksSecured}/${totalMarksAllotted} (${percentage}%)`, { align: 'center' });
+    doc.addPage();
+
+    // Results Section
+    doc.fillColor('#1E90FF').fontSize(18).font('Helvetica-Bold').text('Results', { align: 'center' });
+    doc.moveDown(1);
+
+    submission.questions.forEach((question, index) => {
+      const qData = questionMap[question.question] || {};
+      const isCodingQuestion = qData.isCodingQuestion || false;
+      const isMCQ = qData.questionType === 'mcq';
+      const securedMarks = parseInt(evaluations[index]) || 0;
+
+      // Question Header
+      doc.fillColor('#4682B4').fontSize(14).font('Helvetica-Bold').text(`Question ${index + 1}:`);
+      doc.fillColor('black').fontSize(12).font(isCodingQuestion ? 'Courier' : 'Helvetica').text(question.question, { indent: 20 });
+
+      // Image for Coding Questions
+      if (isCodingQuestion && qData.imageUrl) {
+        try {
+          const imagePath = path.join(__dirname, 'public', qData.imageUrl);
+          doc.image(imagePath, { width: 300, align: 'center' });
+          doc.moveDown(0.5);
+        } catch (err) {
+          console.warn(`Failed to include image ${qData.imageUrl}:`, err);
+          doc.fontSize(10).fillColor('red').text(`[Image not available: ${qData.imageUrl}]`, { indent: 20 });
+        }
+      }
+
+      // MCQ Options
+      if (isMCQ) {
+        doc.moveDown(0.2);
+        doc.fillColor('#4682B4').fontSize(12).font('Helvetica-Bold').text('Options:', { indent: 20 });
+        qData.options.forEach((opt, i) => {
+          const isCorrect = i === qData.correctOptionIndex;
+          doc.fillColor(isCorrect ? '#228B22' : 'black').fontSize(12).font('Helvetica').text(
+            `${String.fromCharCode(97 + i)}) ${opt}${isCorrect ? ' (Correct)' : ''}`,
+            { indent: 40 }
+          );
+        });
+      }
+
+      // User Answer
+      doc.moveDown(0.2);
+      doc.fillColor('#4682B4').fontSize(12).font('Helvetica-Bold').text('Your Answer:', { indent: 20 });
+      doc.fillColor('black').fontSize(12).font(isCodingQuestion ? 'Courier' : 'Helvetica').text(
+        question.userAnswer || 'Skipped',
+        { indent: 40, width: 450, continued: false }
+      );
+
+      // Admin Answer for Subjective or Coding Questions
+      if (!isMCQ && qData.answer) {
+        doc.moveDown(0.2);
+        doc.fillColor('#4682B4').fontSize(12).font('Helvetica-Bold').text('Correct Answer:', { indent: 20 });
+        doc.fillColor('black').fontSize(12).font(isCodingQuestion ? 'Courier' : 'Helvetica').text(
+          qData.answer,
+          { indent: 40, width: 450, continued: false }
+        );
+      }
+
+      // Marks
+      doc.moveDown(0.2);
+      doc.fillColor('#4682B4').fontSize(12).font('Helvetica-Bold').text(`Allotted Marks: ${qData.marks || 0}`, { indent: 20 });
+      doc.fillColor(securedMarks === qData.marks ? '#228B22' : '#FF4500').fontSize(12).font('Helvetica-Bold').text(
+        `Secured Marks: ${securedMarks}/${qData.marks || 0}`,
+        { indent: 20 }
+      );
+
+      // Separator Line
+      doc.moveDown(0.5);
+      doc.strokeColor('#D3D3D3').lineWidth(1).moveTo(40, doc.y).lineTo(550, doc.y).stroke();
+      doc.moveDown(0.5);
+    });
+
+    // Final Total
+    doc.fillColor('#1E90FF').fontSize(16).font('Helvetica-Bold').text(
+      `Total Marks Secured: ${totalMarksSecured}/${totalMarksAllotted} (${percentage}%)`,
+      { align: 'center' }
+    );
+
+    doc.end();
+
+    // Wait for the PDF stream to finish
+    await new Promise((resolve, reject) => {
+      stream.on('finish', resolve);
+      stream.on('error', reject);
+    });
+
+    // Send email with PDF attachment
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
@@ -763,31 +999,73 @@ const emailContent = `
         pass: process.env.pass,
       },
     });
-    
+
     const mailOptions = {
-      from: process.env.user, // Replace with your email address
-      to: submission.userId, // User's registered email address
+      from: process.env.user,
+      to: submission.userId,
       subject: 'Quiz Evaluation Results',
-      html: emailContent,
+      text: 'Please find your quiz evaluation results attached as a PDF.',
+      attachments: [
+        {
+          filename: 'Quiz_Evaluation_Results.pdf',
+          path: pdfPath,
+        },
+      ],
     };
 
-    transporter.sendMail(mailOptions, (error, info) => {
-      if (error) {
-        console.error('Error sending email:', error);
-        res.status(500).send('An error occurred while sending the email.');
-      } else {
+    await new Promise((resolve, reject) => {
+      transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+          console.error('Error sending email:', error);
+          return reject(new Error('Failed to send email'));
+        }
         console.log('Email sent:', info.response);
-        res.send(`
-  <div style="font-size: 20px;">
-    <p>Evaluated successfully! Results sent via email</p>
-    <a href="/admin/evaluation">Back to evaluation</a>
-  </div>
-`);
-      }
+        resolve();
+      });
     });
+
+    // Clean up PDF file
+    try {
+      await fsPromises.unlink(pdfPath);
+    } catch (err) {
+      console.warn(`Failed to delete PDF file ${pdfPath}:`, err);
+    }
+
+    res.send(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Evaluation Success</title>
+          <script src="https://cdn.tailwindcss.com"></script>
+          <style>
+              .fade-in {
+                  animation: fadeIn 0.5s ease-in;
+              }
+              @keyframes fadeIn {
+                  0% { opacity: 0; transform: translateY(10px); }
+                  100% { opacity: 1; transform: translateY(0); }
+              }
+          </style>
+      </head>
+      <body class="bg-gray-100 flex items-center justify-center min-h-screen">
+          <div class="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center fade-in">
+              <div class="mb-4">
+                  <svg class="w-16 h-16 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+              </div>
+              <h2 class="text-2xl font-semibold text-gray-800 mb-2">Evaluation Complete!</h2>
+              <p class="text-gray-600 mb-6">Results have been sent to the user's email as a PDF.</p>
+              <a href="/admin/evaluation" class="inline-block bg-blue-600 text-white font-medium py-2 px-6 rounded-lg hover:bg-blue-700 transition duration-200">Back to Evaluation</a>
+          </div>
+      </body>
+      </html>
+    `);
   } catch (error) {
     console.error('Error saving evaluations:', error);
-    res.status(500).send('An error occurred while saving evaluations.');
+    res.status(500).send(`An error occurred while saving evaluations: ${error.message}`);
   }
 });
 
@@ -820,16 +1098,53 @@ app.get('/admin/view-evaluation', checkAdminAuthentication, async (req, res) => 
 app.get('/admin/view-evaluation/:submissionId', checkAdminAuthentication, async (req, res) => {
   try {
     const submissionId = req.params.submissionId;
-
-    // Fetch the evaluated submission details from the database based on submissionId
     const evaluatedSubmission = await Evaluated.findOne({ submissionId });
-
     if (!evaluatedSubmission) {
       return res.status(404).send('Evaluated submission not found.');
     }
 
-    // Render a template to display the evaluated submission details
-    res.render('view-evaluated-submission', { evaluatedSubmission });
+    const submission = await Submission.findById(submissionId);
+    if (!submission) {
+      return res.status(404).send('Submission not found.');
+    }
+
+    const mainTopic = await MainTopic.findById(submission.mainTopicId);
+    if (!mainTopic) {
+      return res.status(404).send('Main topic not found.');
+    }
+
+    const subTopic = mainTopic.subTopics.id(submission.subTopicId);
+    if (!subTopic) {
+      return res.status(404).send('Subtopic not found.');
+    }
+
+    const questionMap = {};
+    subTopic.questions.forEach((q) => {
+      questionMap[q.question] = {
+        isCodingQuestion: q.isCodingQuestion,
+        questionType: q.questionType,
+        options: q.options,
+        correctOptionIndex: q.correctOptionIndex,
+        imageUrl: q.imageUrl,
+      };
+    });
+
+    const enhancedEvaluations = evaluatedSubmission.evaluations.map((evaluation) => ({
+      ...evaluation._doc,
+      isCodingQuestion: questionMap[evaluation.question]?.isCodingQuestion || false,
+      questionType: questionMap[evaluation.question]?.questionType || 'subjective',
+      options: questionMap[evaluation.question]?.options || [],
+      correctOptionIndex: questionMap[evaluation.question]?.correctOptionIndex,
+      userOptionIndex: evaluation.userOptionIndex,
+      imageUrl: questionMap[evaluation.question]?.imageUrl || null,
+    }));
+
+    const enhancedEvaluatedSubmission = {
+      ...evaluatedSubmission._doc,
+      evaluations: enhancedEvaluations,
+    };
+
+    res.render('view-evaluated-submission', { evaluatedSubmission: enhancedEvaluatedSubmission });
   } catch (error) {
     console.error('Error fetching evaluated submission:', error);
     res.status(500).send('An error occurred while fetching the evaluated submission.');
@@ -842,31 +1157,48 @@ app.get('/admin/settings', checkAdminAuthentication, (req, res) => {
 
 app.post('/admin/update-settings', checkAdminAuthentication, async (req, res) => {
   try {
-    // Retrieve the new username and password from the form submission
     const newUsername = req.body.newUsername;
     const newPassword = req.body.newPassword;
     const confirmPassword = req.body.confirmPassword;
 
-    // Check if newPassword matches confirmPassword
     if (newPassword !== confirmPassword) {
-      // Passwords don't match, handle this error as needed
       return res.render('admin-settings', { error: 'Passwords do not match' });
     }
 
-    // Update the admin credentials in the database
     await Admin.updateOne({}, { username: newUsername, password: newPassword });
-    
-    // Construct a success message with a link to the dashboard
-    const successMessage = `
-    <div style="font-size:20px;">
-      <p>Successfully updated the username and password!</p>
-      <a href="/admin/dashboard">Go to dashboard</a>
-      </div>
-    `;
-    
-    res.send(successMessage);
 
-
+    res.send(`
+      <!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Settings Updated</title>
+          <script src="https://cdn.tailwindcss.com"></script>
+          <style>
+              .fade-in {
+                  animation: fadeIn 0.5s ease-in;
+              }
+              @keyframes fadeIn {
+                  0% { opacity: 0; transform: translateY(10px); }
+                  100% { opacity: 1; transform: translateY(0); }
+              }
+          </style>
+      </head>
+      <body class="bg-gray-100 flex items-center justify-center min-h-screen">
+          <div class="bg-white p-8 rounded-xl shadow-lg max-w-md w-full text-center fade-in">
+              <div class="mb-4">
+                  <svg class="w-16 h-16 text-green-500 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+              </div>
+              <h2 class="text-2xl font-semibold text-gray-800 mb-2">Update Successful!</h2>
+              <p class="text-gray-600 mb-6">Your username and password have been updated.</p>
+              <a href="/admin/dashboard" class="inline-block bg-blue-600 text-white font-medium py-2 px-6 rounded-lg hover:bg-blue-700 transition duration-200">Go to Dashboard</a>
+          </div>
+      </body>
+      </html>
+    `);
   } catch (error) {
     console.error('Error updating admin settings:', error);
     res.status(500).send('An error occurred while updating admin settings.');
@@ -897,6 +1229,119 @@ app.post('/admin/logout', (req, res) => {
     // Redirect the admin to the login page after logging out
     res.redirect('/admin'); // You can replace '/admin' with the admin login page URL
   });
+});
+
+
+
+// Route to update a question
+app.post('/admin/update-question', checkAdminAuthentication, upload.single('image'), async (req, res) => {
+  const { mainTopicId, subTopicId, questionId, question, questionType, answer, timer, marks, options, correctOptionIndex } = req.body;
+  const image = req.file ? `/uploads/${req.file.filename}` : null;
+
+  try {
+    const mainTopic = await MainTopic.findById(mainTopicId);
+    if (!mainTopic) {
+      return res.status(404).send('Main topic not found.');
+    }
+
+    const subTopic = mainTopic.subTopics.id(subTopicId);
+    if (!subTopic) {
+      return res.status(404).send('Subtopic not found.');
+    }
+
+    const questionObj = subTopic.questions.id(questionId);
+    if (!questionObj) {
+      return res.status(404).send('Question not found.');
+    }
+
+    // Update question fields
+    questionObj.question = question;
+    questionObj.questionType = questionType;
+    questionObj.timer = parseInt(timer) || 0;
+    questionObj.marks = parseInt(marks) || 0;
+    questionObj.isCodingQuestion = questionType === 'coding';
+
+    if (questionType === 'mcq') {
+      questionObj.options = Array.isArray(options) ? options.filter(opt => opt.trim() !== '') : [];
+      questionObj.correctOptionIndex = correctOptionIndex ? parseInt(correctOptionIndex) : null;
+      questionObj.answer = ''; // Ensure answer is empty for MCQs
+      if (questionObj.options.length < 2 || questionObj.correctOptionIndex === null || questionObj.correctOptionIndex >= questionObj.options.length) {
+        return res.status(400).send('MCQ must have at least 2 valid options and a valid correct option selected.');
+      }
+    } else {
+      questionObj.answer = answer || '';
+      questionObj.options = [];
+      questionObj.correctOptionIndex = null;
+      if (questionType === 'coding' && image) {
+        // Delete old image if it exists
+        if (questionObj.imageUrl) {
+          const oldImagePath = path.join(__dirname, 'public', questionObj.imageUrl);
+          try {
+            await fsPromises.unlink(oldImagePath);
+          } catch (err) {
+            console.warn(`Failed to delete old image ${questionObj.imageUrl}:`, err);
+          }
+        }
+        questionObj.imageUrl = image;
+      } else if (questionType !== 'coding') {
+        // Clear imageUrl if switching from coding to another type
+        if (questionObj.imageUrl) {
+          const oldImagePath = path.join(__dirname, 'public', questionObj.imageUrl);
+          try {
+            await fsPromises.unlink(oldImagePath);
+          } catch (err) {
+            console.warn(`Failed to delete old image ${questionObj.imageUrl}:`, err);
+          }
+          questionObj.imageUrl = null;
+        }
+      }
+    }
+
+    await mainTopic.save();
+    res.redirect(`/admin/view-questions/${mainTopicId}/${subTopicId}`);
+  } catch (error) {
+    console.error('Error updating question:', error);
+    res.status(500).send('An error occurred while updating the question.');
+  }
+});
+
+// Route to delete a question
+app.post('/admin/delete-question', checkAdminAuthentication, async (req, res) => {
+  const { mainTopicId, subTopicId, questionId } = req.body;
+
+  try {
+    const mainTopic = await MainTopic.findById(mainTopicId);
+    if (!mainTopic) {
+      return res.status(404).json({ error: 'Main topic not found.' });
+    }
+
+    const subTopic = mainTopic.subTopics.id(subTopicId);
+    if (!subTopic) {
+      return res.status(404).json({ error: 'Subtopic not found.' });
+    }
+
+    const question = subTopic.questions.id(questionId);
+    if (!question) {
+      return res.status(404).json({ error: 'Question not found.' });
+    }
+
+    // Delete image if it exists
+    if (question.imageUrl) {
+      const imagePath = path.join(__dirname, 'public', question.imageUrl);
+      try {
+        await fsPromises.unlink(imagePath);
+      } catch (err) {
+        console.warn(`Failed to delete image ${question.imageUrl}:`, err);
+      }
+    }
+
+    subTopic.questions.pull(questionId);
+    await mainTopic.save();
+    res.status(200).json({ message: 'Question deleted successfully.' });
+  } catch (error) {
+    console.error('Error deleting question:', error);
+    res.status(500).json({ error: 'An error occurred while deleting the question.' });
+  }
 });
 
 

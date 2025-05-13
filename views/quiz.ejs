@@ -5,209 +5,277 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" type="image/png" href="./icons8-quiz-64.png">
     <title>Quiz Page</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Prism.js for code highlighting -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism.min.css" />
+    <!-- Google Fonts: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
-            user-select: none; /* Disable text selection for the entire page */
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+            transition: background-color 0.3s ease;
+            background: linear-gradient(to right, #4b6cb7, #182848); /* Gradient background */
         }
-
-        /* CSS class for blurring content */
         .blur {
-            filter: blur(5px); /* Apply a blur effect */
-            pointer-events: none; /* Disable pointer events on blurred elements */
+            filter: blur(5px);
+            pointer-events: none;
         }
-
-        #fullscreen-note {
-            background-color: rgb(181, 86, 70); /* Background color */
-            padding: 10px; /* Padding around the note */
-            margin-top: 60px; /* Add some spacing between the note and other content */
-            border-radius: 5px; /* Add rounded corners to the note */
-            text-align: center; /* Center the text within the note */
-            font-size: 25px; /* Font size for the note text */
-            color: rgb(255, 255, 255); /* Text color */
+        .question-card {
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            opacity: 0;
+            transform: translateY(20px);
         }
-
-        /* Styles for fullscreen mode */
-        .fullscreen-body {
-            background-color:#82e5dde1; /* Background color for fullscreen mode */
-            color: #060202; /* Text color for fullscreen mode */
-            font-family: Arial, sans-serif; /* Font family for fullscreen mode */
-            text-align: center; /* Center-align the content */
-          }
-
-        .fullscreen-header {
-            text-align: center;
-            font-size: 36px;
-            margin-top: 0;
+        .question-card.visible {
+            opacity: 1;
+            transform: translateY(0);
         }
-
-        #fullscreen-button {
-    position: absolute;
-    top: 10px; /* Adjust the top position as needed */
-    left: 50%; /* Center horizontally */
-    transform: translateX(-50%); /* Center horizontally */
-    font-size: 20px; /* Increase font size for the button */
-    background-color: #4CAF50; /* Set the background color to green */
-    color: white; /* Set the text color to white */
-    border: none; /* Remove the border */
-    padding: 10px 20px; /* Add padding to the button */
-    border-radius: 5px; /* Add rounded corners */
-    cursor: pointer;
-}
-
-
+        .marks-badge {
+            background-color: #e0f2fe;
+            color: #1e40af;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            display: inline-flex;
+            align-items: center;
+        }
+        .fullscreen-note {
+            transition: opacity 0.3s ease;
+        }
+        .submit-btn {
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        .submit-btn:hover {
+            transform: scale(1.05);
+        }
+        .answer-textarea {
+            white-space: pre-wrap;
+            font-family: 'Courier New', Courier, monospace;
+            resize: vertical;
+        }
+        .question-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 0.5rem;
+            border: 1px solid #e5e7eb;
+        }
+        pre, code {
+            text-align: left;
+            white-space: pre-wrap;
+            font-family: 'Courier New', Courier, monospace;
+            border-radius: 0.5rem;
+        }
+        .mcq-option {
+            margin-bottom: 0.5rem;
+        }
+        .dark-theme {
+            color: #f3f4f6;
+        }
+        .dark-theme .question-card {
+            background-color: #374151;
+            border-color: #4b5563;
+        }
+        .dark-theme .marks-badge {
+            background-color: #4b5563;
+            color: #60a5fa;
+        }
+        .dark-theme .submit-btn {
+            background-color: #3b82f6;
+        }
+        .dark-theme .submit-btn:hover {
+            background-color: #2563eb;
+        }
+        @media (max-width: 640px) {
+            .question-card {
+                padding: 1rem;
+            }
+            .marks-badge {
+                font-size: 0.875rem;
+            }
+            .submit-btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.875rem;
+            }
+            .fullscreen-note {
+                font-size: 0.875rem;
+                padding: 0.75rem;
+            }
+        }
     </style>
 </head>
-<body>
-  <!-- Add a button to enable fullscreen -->
-  <button id="fullscreen-button">Start Quiz in Fullscreen</button>
+<body class="dark-theme">
+    <!-- Fullscreen Button -->
+    <button id="fullscreen-button" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-teal-500 text-white font-semibold py-3 px-6 rounded-full hover:bg-teal-600 transition duration-300 shadow-lg z-50">
+        Start Quiz in Fullscreen
+    </button>
 
-  <%
-    if (typeof formSubmitted === 'undefined') {
-      let formSubmitted = false;
-    }
-  %>
+    <!-- Fullscreen Note -->
+    <div class="fullscreen-note opacity-100 bg-red-600 text-white text-center py-4 px-6 mt-20 rounded-lg mx-auto max-w-3xl">
+        <p class="text-lg">Note: Pressing "Esc" or exiting fullscreen mode will automatically submit your answers. You may skip questions you don’t wish to answer.</p>
+    </div>
 
-  <!-- Add a note for fullscreen mode -->
-<div id="fullscreen-note" >
-  <p>Note: If you press the "Esc" key or attempt to exit fullscreen mode, your answers will be submitted automatically.</p>
-</div>
+    <!-- Quiz Header -->
+    <div class="container mx-auto px-4 py-8 flex flex-col items-center">
+        <h1 class="text-4xl font-bold text-white mb-4 text-center"><%= quiz.title %></h1>
+        <p class="text-xl text-gray-300 mb-6 text-center max-w-2xl"><%= quiz.description %></p>
+        <div class="flex justify-center items-center mb-8">
+            <h3 class="text-2xl font-semibold text-white">Timer: <span id="timer-display" class="text-teal-400"><%= quiz.totalTimerDuration %> minutes</span></h3>
+        </div>
 
-<!-- Quiz content container for fullscreen mode -->
-<div class="fullscreen-body">
-    <h1 class="fullscreen-header" style="font-size: 20px;"><%= quiz.title %></h1>
-    <p style="font-size: 30px;"><%= quiz.description %></p>
+        <!-- Quiz Form -->
+        <form id="quiz-form" action="/submit" method="POST" class="space-y-6 w-full max-w-4xl">
+            <input type="hidden" name="mainTopicId" value="<%= quiz.mainTopic._id %>">
+            <input type="hidden" name="subTopicId" value="<%= quiz.subTopic._id %>">
+            <% quiz.questions.forEach((question, index) => { %>
+                <div class="question-card bg-white dark:bg-gray-700 p-6 rounded-lg shadow-lg border border-gray-200 dark:border-gray-600">
+                    <!-- Question Content -->
+                    <% if (question.isCodingQuestion) { %>
+                        <label class="block text-lg font-semibold text-gray-800 dark:text-gray-200 blur">Question:</label>
+                        <pre class="blur bg-gray-100 dark:bg-gray-800 p-4 rounded-lg"><code class="language-html"><%= question.question %></code></pre>
+                        <% if (question.imageUrl) { %>
+                            <img src="<%= question.imageUrl %>" alt="Question Image" class="question-image blur">
+                        <% } %>
+                    <% } else if (question.questionType === 'mcq') { %>
+                        <label class="block text-lg font-semibold text-gray-800 dark:text-gray-200 blur">Question: <%= question.question %></label>
+                        <div class="mcq-options blur mt-2">
+                            <% question.options.forEach((option, optIndex) => { %>
+                                <div class="mcq-option flex items-center">
+                                    <input type="radio" name="userAnswers[<%= index %>]" value="<%= optIndex %>" class="mr-2" <% if (formSubmitted) { %>disabled<% } %>>
+                                    <span class="text-gray-700 dark:text-gray-300"><%= option %></span>
+                                </div>
+                            <% }); %>
+                        </div>
+                    <% } else { %>
+                        <label class="block text-lg font-semibold text-gray-800 dark:text-gray-200 blur">Question: <%= question.question %></label>
+                    <% } %>
 
-    <h3 style="font-size: 24px;">Timer: <span id="timer-display"><%= quiz.totalTimerDuration %> minutes</span></h3>
+                    <!-- Marks Display -->
+                    <div class="marks-badge mt-2">
+                        <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        Marks: <%= question.marks %>
+                    </div>
 
-    <form id="quiz-form" action="/submit" method="POST">
-        <input type="hidden" name="mainTopicId" value="<%= quiz.mainTopic._id %>">
-        <input type="hidden" name="subTopicId" value="<%= quiz.subTopic._id %>">
-        <% quiz.questions.forEach((question, index) => { %>
-            <!-- Apply the "blur" class to elements you want to blur initially -->
-            <label class="blur" style="font-size: 28px;">Question: <%= question.question %></label><br>
-            <label class="blur">Marks: <%= question.marks %> Marks</label><br>
-            <div class="answer-container">
-              <label class="blur">Answer:</label><br>
-              <textarea class="blur" name="userAnswers[<%= index %>]" rows="5" cols="50" <% if (formSubmitted) { %>readonly<% } %>></textarea><br>
-          </div>
-          <br/>
-          <br/>
-            <input type="hidden" name="adminQuestions[<%= index %>]" value="<%= question.question %>">
-            <input type="hidden" name="adminAnswers[<%= index %>]" value="<%= question.answer %>">
-        <% }); %>
-        <input type="submit" value="Submit" <% if (formSubmitted) { %>disabled<% } %> class="blur"> <!-- Disable the submit button if the form is submitted -->
-    </form>
-</div>
+                    <!-- Answer Input -->
+                    <% if (question.questionType !== 'mcq') { %>
+                        <div class="answer-container mt-4">
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 blur">Your Answer (Optional):</label>
+                            <textarea class="answer-textarea blur w-full mt-1 p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100" name="userAnswers[<%= index %>]" rows="5" placeholder="Enter your answer here (optional)" <% if (formSubmitted) { %>readonly<% } %>></textarea>
+                        </div>
+                    <% } %>
 
+                    <!-- Hidden Inputs -->
+                    <input type="hidden" name="adminQuestions[<%= index %>]" value="<%= question.question %>">
+                    <input type="hidden" name="adminAnswers[<%= index %>]" value="<%= question.answer %>">
+                    <% if (question.questionType === 'mcq') { %>
+                        <input type="hidden" name="correctOptionIndex[<%= index %>]" value="<%= question.correctOptionIndex %>">
+                        <% question.options.forEach((option, optIndex) => { %>
+                            <input type="hidden" name="options[<%= index %>][]" value="<%= option %>">
+                        <% }); %>
+                    <% } %>
+                </div>
+            <% }); %>
+
+            <!-- Submit Button -->
+            <div class="text-center">
+                <input type="submit" value="Submit Quiz" class="submit-btn bg-teal-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-teal-600 blur" <% if (formSubmitted) { %>disabled<% } %>>
+            </div>
+        </form>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-html.min.js"></script>
 <script>
-    window.history.forward(); // Disable the browser back button to prevent going back
+  window.history.forward();
+  let formSubmitted = false;
+  let countdownInterval;
 
-    let formSubmitted = false; // Variable to track if the form has already been submitted
-    let isFullscreen = false; // Variable to track fullscreen mode 
-    let countdownInterval; // Variable to track the countdown interval
-
-    // Function to enable fullscreen mode and unblur content
-    function enableFullscreenAndUnblur() {
-      const elem = document.documentElement;
-      if (elem.requestFullscreen) {
-        elem.requestFullscreen().then(() => {
-          // Remove the "blur" class from elements to unblur them
-          const blurredElements = document.querySelectorAll('.blur');
-          blurredElements.forEach((element) => {
-            element.classList.remove('blur');
-          });
-
-          // Enable the submit button
-          const submitButton = document.querySelector('input[type="submit"]');
-          submitButton.removeAttribute('disabled');
-
-          // Apply fullscreen styles
-          document.body.classList.add('fullscreen-body');
-
-          // Start the countdown timer
-          startCountdown();
-          // Disable the fullscreen button
-        fullscreenButton.setAttribute('disabled', 'disabled');
-        }).catch((err) => {
-          console.error('Error attempting to enable fullscreen:', err);
+  function enableFullscreenAndUnblur() {
+    const elem = document.documentElement;
+    if (elem.requestFullscreen) {
+      elem.requestFullscreen().then(() => {
+        const blurredElements = document.querySelectorAll('.blur');
+        blurredElements.forEach((element) => element.classList.remove('blur'));
+        const submitButton = document.querySelector('input[type="submit"]');
+        submitButton.removeAttribute('disabled');
+        startCountdown();
+        document.getElementById('fullscreen-button').setAttribute('disabled', 'disabled');
+        document.querySelectorAll('.question-card').forEach((card, index) => {
+          setTimeout(() => card.classList.add('visible'), index * 100);
         });
-      } else if (elem.mozRequestFullScreen) {
-        elem.mozRequestFullScreen();
-      } else if (elem.webkitRequestFullscreen) {
-        elem.webkitRequestFullscreen();
-      } else if (elem.msRequestFullscreen) {
-        elem.msRequestFullscreen();
-      }
+        window.history.pushState(null, '', window.location.href);
+      }).catch((err) => {
+        console.error('Error enabling fullscreen:', err);
+      });
     }
+  }
 
-    // Add an event listener to the fullscreen button
-    const fullscreenButton = document.getElementById('fullscreen-button');
-    fullscreenButton.addEventListener('click', enableFullscreenAndUnblur);
+  const fullscreenButton = document.getElementById('fullscreen-button');
+  fullscreenButton.addEventListener('click', enableFullscreenAndUnblur);
 
-    // Function to update the timer display
-    function updateTimerDisplay(seconds) {
-      const minutes = Math.floor(seconds / 60);
-      const remainingSeconds = seconds % 60;
-      const timerDisplay = document.getElementById('timer-display');
-      timerDisplay.textContent = `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
-    }
+  function updateTimerDisplay(seconds) {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    const timerDisplay = document.getElementById('timer-display');
+    timerDisplay.textContent = `${minutes}:${remainingSeconds < 10 ? '0' : ''}${remainingSeconds}`;
+  }
 
-    // Function to start the countdown
-    function startCountdown() {
-      let remainingTime = <%= quiz.totalTimerDuration %> * 60;
-
-      // Initial display
+  function startCountdown() {
+    let remainingTime = <%= quiz.totalTimerDuration %> * 60;
+    updateTimerDisplay(remainingTime);
+    countdownInterval = setInterval(() => {
+      remainingTime--;
       updateTimerDisplay(remainingTime);
-
-      countdownInterval = setInterval(() => {
-        remainingTime--;
-
-        // Update the display
-        updateTimerDisplay(remainingTime);
-
-        if (remainingTime <= 0) {
-          clearInterval(countdownInterval);
-          // Automatically submit the form when the timer reaches zero
-          document.getElementById('quiz-form').submit();
-        }
-      }, 1000); // Update the timer every 1 second (1000 milliseconds)
-    }
-
-    // Start the countdown when the page loads
-    window.addEventListener('load', () => {
-      // Initial display of the timer when the page loads
-      updateTimerDisplay(<%= quiz.totalTimerDuration %> * 60);
-    });
-// Listen for fullscreenchange event to detect when the user exits fullscreen
-document.addEventListener('fullscreenchange', (event) => {
-      if (!document.fullscreenElement) {
-        // The user has exited fullscreen mode
-          document.getElementById('quiz-form').submit();
-      }
-    });
-
-    document.addEventListener('contextmenu', (e)=>{
-      e.preventDefault();
-    });
-
-// Add an event listener to capture the F5 key press
-document.addEventListener('keydown', (e) => {
-      // Check if the pressed key is F5 (keyCode 116), Ctrl+R (keyCode 82), or the corresponding key code for F5
-      if ((e.keyCode === 116 || e.key === 'F5' || (e.ctrlKey && e.keyCode === 82)) && !formSubmitted) {
-        // Prevent the default behavior of the F5 key and Ctrl+R (page refresh)
-        e.preventDefault();
-      }
-    });
-    
- // Listen for visibilitychange event to detect when the user switches to another tab
- document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') {
-        // Page is not visible, submit the form
+      if (remainingTime <= 0) {
+        clearInterval(countdownInterval);
         document.getElementById('quiz-form').submit();
       }
-    });
+    }, 1000);
+  }
 
-document
+  window.addEventListener('load', () => {
+    updateTimerDisplay|    updateTimerDisplay(<%= quiz.totalTimerDuration %> * 60);
+    window.history.pushState(null, '', window.location.href);
+  });
+
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement) {
+      document.getElementById('quiz-form').submit();
+    }
+  });
+
+  document.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if ((e.keyCode === 116 || e.key === 'F5' || (e.ctrlKey && e.keyCode === 82)) && !formSubmitted) {
+      e.preventDefault();
+    }
+  });
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      document.getElementById('quiz-form').submit();
+    }
+  });
+
+  window.addEventListener('popstate', () => {
+    if (formSubmitted) {
+      alert('You have already submitted this quiz. Redirecting to homepage...');
+      window.location.href = '/homepage';
+    } else {
+      window.history.pushState(null, '', window.location.href);
+    }
+  });
+
+  document.getElementById('quiz-form').addEventListener('submit', () => {
+    formSubmitted = true;
+    clearInterval(countdownInterval);
+  });
 </script>
 </body>
 </html>

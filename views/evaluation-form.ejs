@@ -141,7 +141,7 @@
                         <input type="number" name="evaluations[<%= index %>]" id="marksSecured_<%= index %>" min="0" max="<%= question.marks %>" oninput="limitMarks(this, <%= question.marks %>)" required>
                     </div>
                     <div class="center-textarea">
-                        <textarea name="evaluations[<%= index %>]" rows="4" cols="50" class="centered-textarea" required></textarea>
+                        <textarea name="evaluations[<%= index %>]" rows="4" cols="50" class="centered-textarea"></textarea>
                     </div>
                     
                     <% totalMarksSecured += (evaluations[index] ? parseInt(evaluations[index]) : 0); %>

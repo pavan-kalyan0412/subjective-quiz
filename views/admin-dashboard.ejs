@@ -1,187 +1,216 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Dashboard</title>
   <link rel="icon" type="image/png" href="./icons8-quiz-64.png">
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #a7d6e9;
-      margin: 30px;
-      padding: 2px;
-      background: linear-gradient(to right, #bfe57c, #000000);
-   }
-
-    .add-main-button {
-      background-color: #28a745;
-      color: #fff;
-      padding: 10px;
-      text-decoration: none;
+    /* Custom animations */
+    @keyframes fadeIn {
+      0% { opacity: 0; transform: translateY(10px); }
+      100% { opacity: 1; transform: translateY(0); }
     }
-
-    .add-sub-button {
-      background-color: #0b94a6;
-      color: #fff;
-      display: inline-block;
-      padding: 10px;
-      margin-top: 10px;
-      text-decoration: none;
+    .fade-in {
+      animation: fadeIn 0.5s ease-in;
     }
-    .sub-topic {
-      margin-bottom: 10px;
+    /* Gradient background animation */
+    .gradient-bg {
+      background: linear-gradient(135deg, #6ee7b7, #3b82f6, #9333ea);
+      background-size: 200% 200%;
+      animation: gradientShift 15s ease infinite;
     }
-
-    /* Add space between subtopic links */
-    .sub-topic-actions {
-      margin-top: 5px;
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
     }
-
-    .delete-button {
-      background-color: rgb(183, 123, 80);
-      color: #fff;
-      padding: 5px 10px;
-      border-radius: 5px;
+    /* Hover scale effect */
+    .hover-scale {
+      transition: transform 0.2s ease;
     }
-
-    .evaluate-button {
-      background-color: #007BFF;
-      color: #fff;
-      padding: 10px 20px;
-      text-decoration: none;
-      border-radius: 5px;
-      display: inline-block;
-      margin-right: 10px;
-      margin-top: 20px;
+    .hover-scale:hover {
+      transform: scale(1.05);
     }
-
-    .evaluate-button:hover {
-      background-color: #0056b3;
+    /* Card shadow */
+    .card-shadow {
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      transition: box-shadow 0.3s ease;
     }
-
-    .view-evaluation-button {
-      background-color: #007BFF;
-      color: #fff;
-      padding: 10px 20px;
-      text-decoration: none;
-      border-radius: 5px;
-      display: inline-block;
-      margin-top: 10px;
+    .card-shadow:hover {
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     }
-
-    .view-evaluation-button:hover {
-      background-color: #0056b3;
+    /* Modal backdrop */
+    .modal-backdrop {
+      transition: opacity 0.3s ease;
     }
-
-    .logout-button {
-      background-color: #dc3545;
-      color: #fff;
-      padding: 10px 20px;
-      text-decoration: none;
-      border-radius: 5px;
-      display: inline-block;
-      margin-top: 10px;
+    .modal-content {
+      transform: scale(0.7);
+      transition: transform 0.3s ease;
     }
-
-    .logout-button:hover {
-      background-color: #a71d2a;
-    }
-   
-
-    .settings-button {
-      background-color: #007BFF;
-      color: #fff;
-      padding: 10px 20px;
-      text-decoration: none;
-      border-radius: 5px;
-      position: absolute;
-      top: 10px;
-      right: 10px;
-    }
-
-    .settings-button:hover {
-      background-color: #0056b3;
-    }
-
-  
-
-    .main-topic {
-      display: inline-block;
-      font-weight: bold;
-      vertical-align: middle;
-    }
-
-    .delete-button {
-      display: inline-block;
-      vertical-align: middle;
-    }
-
-    .clear {
-      clear: both;
-    }
-    .view-questions-button{
-      color:#ffffff;
-      background-color: #000000;
-    }
-    .add-questions-button{
-      color:#ffffff;
-      background-color: #000000;
-    }
-
-    .delete-topic-button{
-      color:#ffffff;
-      background-color: #000000;
+    .modal-open .modal-content {
+      transform: scale(1);
     }
   </style>
 </head>
-<body>
-  <h1>Welcome, Admin!</h1>
+<body class="gradient-bg min-h-screen text-gray-800">
+  <div class="container mx-auto px-4 py-8">
+    <!-- Header -->
+    <div class="flex justify-between items-center mb-8">
+      <h1 class="text-4xl font-bold text-white fade-in">Welcome, Admin!</h1>
+      <a href="/admin/settings" class="bg-indigo-600 text-white px-6 py-3 rounded-lg hover:bg-indigo-700 hover-scale transition duration-200">
+        Settings
+      </a>
+    </div>
 
-  <h2>Added Main Topics:</h2>
-  <ul>
-    <% mainTopics.forEach(topic => { %>
-      <li class="topic-container">
-        <strong class="main-topic"><%= topic.mainTopic %></strong>
-        
-        <form action="/admin/delete-main-topic/<%= topic._id %>" method="POST" onsubmit="return confirmDelete('<%= topic.subTopics.length %> subtopics');">
-          <input type="hidden" name="_method" value="DELETE">
-          <button class="delete-button" type="submit">Delete Main Topic</button>
-        </form>
+    <!-- Main Topics Section -->
+    <div class="bg-white rounded-2xl p-6 card-shadow mb-8 fade-in">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-semibold text-gray-800">Main Topics</h2>
+        <a href="/admin/add-main-topic" class="bg-green-500 text-white px-6 py-3 rounded-lg hover:bg-green-600 hover-scale transition duration-200">
+          Add Main Topic
+        </a>
+      </div>
+      <ul class="space-y-6">
+        <% mainTopics.forEach(topic => { %>
+          <li class="border-b border-gray-200 pb-4">
+            <div class="flex justify-between items-center">
+              <strong class="text-lg font-medium text-gray-800"><%= topic.mainTopic %></strong>
+              <button onclick="showDeleteModal('main', '<%= topic._id %>', '<%= topic.mainTopic %>', '<%= topic.subTopics.length %> subtopics')" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 hover-scale transition duration-200">
+                Delete Main Topic
+              </button>
+            </div>
+            <ol class="mt-4 space-y-4">
+              <% topic.subTopics.forEach(subTopic => { %>
+                <li class="flex flex-col bg-gray-50 p-4 rounded-lg card-shadow">
+                  <span class="text-gray-700 font-medium"><%= subTopic.subTopic %></span>
+                  <div class="flex space-x-3 mt-3">
+                    <button onclick="location.href='/admin/add-questions/<%= topic._id %>/<%= subTopic._id %>'" class="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 hover-scale transition duration-200">
+                      Add Questions
+                    </button>
+                    <button onclick="location.href='/admin/view-questions/<%= topic._id %>/<%= subTopic._id %>'" class="bg-gray-800 text-white px-4 py-2 rounded-lg hover:bg-gray-900 hover-scale transition duration-200">
+                      View Questions
+                    </button>
+                    <button onclick="showDeleteModal('sub', '<%= topic._id %>/<%= subTopic._id %>', '<%= subTopic.subTopic %>', '')" class="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 hover-scale transition duration-200">
+                      Delete
+                    </button>
+                  </div>
+                </li>
+              <% }); %>
+            </ol>
+            <a href="/admin/add-subtopic/<%= topic._id %>" class="inline-block mt-4 bg-teal-500 text-white px-4 py-2 rounded-lg hover:bg-teal-600 hover-scale transition duration-200">
+              Add Subtopic
+            </a>
+          </li>
+        <% }); %>
+      </ul>
+    </div>
 
-        <ol>
-          <% topic.subTopics.forEach(subTopic => { %>
-            <li class="sub-topic">
-              <%= subTopic.subTopic %>
-              <div class="sub-topic-actions">
-                <button class="add-questions-button" onclick="location.href='/admin/add-questions/<%= topic._id %>/<%= subTopic._id %>'">Add Questions</button>
-                <button class="view-questions-button" onclick="location.href='/admin/view-questions/<%= topic._id %>/<%= subTopic._id %>'">View Questions</button>
-                <button class="delete-topic-button" onclick="location.href='/admin/confirm-delete-subtopic/<%= topic._id %>/<%= subTopic._id %>'">Delete</button>
-              </div>
-            </li>
-          <% }); %>
-        </ol>
-        <a class="add-sub-button" href="/admin/add-subtopic/<%= topic._id %>">Add Subtopic</a>
-        <div class="clear"></div>
-      </li>
-    <% }); %>
-  </ul>
-  <a class="add-main-button" href="/admin/add-main-topic">Add Main Topic</a><br/>
+    <!-- Action Buttons -->
+    <div class="flex flex-wrap gap-4 fade-in">
+      <a href="/admin/evaluation" class="relative bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 hover-scale transition duration-200">
+        Evaluate
+        <% if (notEvaluatedCount > 0) { %>
+          <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+            <%= notEvaluatedCount %>
+          </span>
+        <% } %>
+      </a>
+      <a href="/admin/view-evaluation" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 hover-scale transition duration-200">
+        View Evaluation
+      </a>
+      <form action="/admin/logout" method="POST">
+        <button type="submit" class="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 hover-scale transition duration-200">
+          Logout
+        </button>
+      </form>
+    </div>
+  </div>
 
-  <a class="evaluate-button" href="/admin/evaluation">
-    Evaluate
-    <% if (notEvaluatedCount > 0) { %>
-      <span style="margin-left: 5px; background-color: red; color: white; padding: 2px 5px; border-radius: 5px;">
-        <%= notEvaluatedCount %>
-      </span>
-    <% } %>
-  </a>
-  <a class="view-evaluation-button" href="/admin/view-evaluation">View Evaluation</a>
-  <a class="settings-button" href="/admin/settings">Settings</a>
-
-  <form action="/admin/logout" method="POST">
-    <button class="logout-button" type="submit">Logout</button>
-  </form>
+  <!-- Delete Confirmation Modal -->
+  <div id="deleteModal" class="fixed inset-0 bg-black bg-opacity-50 hidden modal-backdrop flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 w-full max-w-md modal-content">
+      <h3 class="text-xl font-semibold text-gray-800 mb-4">Confirm Deletion</h3>
+      <p id="modalMessage" class="text-gray-600 mb-4"></p>
+      <form id="deleteForm" method="POST">
+        <div id="subTopicInput" class="hidden mb-4">
+          <label for="confirmSubtopicName" class="block text-sm font-medium text-gray-700">Enter Subtopic Name to Confirm</label>
+          <input type="text" name="confirmSubtopicName" id="confirmSubtopicName" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+        </div>
+        <div class="flex justify-end space-x-3">
+          <button type="button" onclick="closeDeleteModal()" class="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400 transition duration-200">
+            Cancel
+          </button>
+          <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition duration-200">
+            Delete
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 
   <script>
+    function showDeleteModal(type, id, name, extraInfo) {
+      const modal = document.getElementById('deleteModal');
+      const modalMessage = document.getElementById('modalMessage');
+      const deleteForm = document.getElementById('deleteForm');
+      const subTopicInput = document.getElementById('subTopicInput');
+
+      let actionUrl, message;
+      if (type === 'main') {
+        actionUrl = `/admin/delete-main-topic/${id}`;
+        message = `Are you sure you want to delete the main topic "${name}"? There are ${extraInfo} associated with it. Deleting the main topic will also delete all subtopics.`;
+        subTopicInput.classList.add('hidden');
+        deleteForm.innerHTML = `
+          <input type="hidden" name="_method" value="DELETE">
+          <div class="flex justify-end space-x-3">
+            <button type="button" onclick="closeDeleteModal()" class="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400 transition duration-200">
+              Cancel
+            </button>
+            <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition duration-200">
+              Delete
+            </button>
+          </div>
+        `;
+      } else {
+        actionUrl = `/admin/delete-subtopic/${id}`;
+        message = `Please confirm you want to delete the subtopic "${name}" by entering its name below. This action cannot be undone.`;
+        subTopicInput.classList.remove('hidden');
+        deleteForm.innerHTML = `
+          <div id="subTopicInput" class="mb-4">
+            <label for="confirmSubtopicName" class="block text-sm font-medium text-gray-700">Enter Subtopic Name to Confirm</label>
+            <input type="text" name="confirmSubtopicName" id="confirmSubtopicName" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" required>
+          </div>
+          <div class="flex justify-end space-x-3">
+            <button type="button" onclick="closeDeleteModal()" class="bg-gray-300 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-400 transition duration-200">
+              Cancel
+            </button>
+            <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition duration-200">
+              Delete
+            </button>
+          </div>
+        `;
+      }
+
+      modalMessage.textContent = message;
+      deleteForm.action = actionUrl;
+
+      modal.classList.remove('hidden');
+      setTimeout(() => {
+        modal.querySelector('.modal-content').classList.add('modal-open');
+      }, 10);
+    }
+
+    function closeDeleteModal() {
+      const modal = document.getElementById('deleteModal');
+      modal.querySelector('.modal-content').classList.remove('modal-open');
+      setTimeout(() => {
+        modal.classList.add('hidden');
+      }, 300);
+    }
+
+    // Original confirmDelete function for fallback
     function confirmDelete(subtopicCount) {
       return confirm(`Are you sure you want to delete this main topic? There are ${subtopicCount} subtopics associated with it. Deleting the main topic will also delete all subtopics.`);
     }

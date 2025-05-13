@@ -31,10 +31,31 @@ const QuizSchema = new mongoose.Schema({
 const Quiz = mongoose.model('Quiz', QuizSchema);
 
 const QuestionSchema = new mongoose.Schema({
+  _id: { type: mongoose.Schema.Types.ObjectId, default: () => new mongoose.Types.ObjectId() },
   question: String,
   answer: String,
   timer: Number,
   marks: Number,
+  isCodingQuestion: {
+    type: Boolean,
+    default: false,
+  },
+  questionType: {
+    type: String,
+    enum: ['subjective', 'coding', 'mcq'],
+    default: 'subjective',
+  },
+  options: [{
+    type: String,
+  }],
+  correctOptionIndex: {
+    type: Number,
+    default: null,
+  },
+  imageUrl: {
+    type: String,
+    default: null,
+  },
 });
 
 const SubTopicSchema = new mongoose.Schema({
@@ -66,7 +87,14 @@ const submissionSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  submittedAt: {
+    type: Date,
+    default: Date.now,
+  }
 });
+
+// Add a unique index to prevent duplicate submissions
+submissionSchema.index({ userId: 1, mainTopicId: 1, subTopicId: 1 }, { unique: true });
 
 const Submission = mongoose.model('Submission', submissionSchema);
 
@@ -92,13 +120,35 @@ const evaluatedSchema = new mongoose.Schema({
     question: String,
     userAnswer: String,
     adminAnswer: String,
-    adminEvaluation: [String],
+    adminEvaluation: [String], // Marks secured (e.g., "4")
+    marks: Number, // Allotted marks (e.g., 5)
+    isCodingQuestion: {
+      type: Boolean,
+      default: false,
+    },
+    questionType: {
+      type: String,
+      enum: ['subjective', 'coding', 'mcq'],
+      default: 'subjective',
+    },
+    options: [{
+      type: String,
+    }],
+    correctOptionIndex: {
+      type: Number,
+      default: null,
+    },
+    userOptionIndex: {
+      type: Number,
+      default: null,
+    },
   }],
   totalMarksSecured: Number,
+  totalMarksAllotted: Number, // Total allotted marks
   evaluationDate: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
 const Evaluated = mongoose.model('Evaluated', evaluatedSchema);

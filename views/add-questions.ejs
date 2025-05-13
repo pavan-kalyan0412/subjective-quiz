@@ -11,13 +11,11 @@
       padding: 0;
       background: linear-gradient(to right, #37aad7, #000000);
     }
-
     h1 {
       text-align: center;
       color: #0fd37e;
       margin-top: 20px;
     }
-
     form {
       background-color: #92bde9;
       border-radius: 5px;
@@ -26,32 +24,24 @@
       width: 600px;
       margin: 0 auto;
     }
-
     label {
       display: block;
       margin-bottom: 5px;
       font-weight: bold;
     }
-
-    textarea,
-    input[type="number"] {
+    textarea, input[type="number"], input[type="text"], select, input[type="file"] {
       width: 95%;
       padding: 5px;
       margin-bottom: 10px;
       border: 1px solid #ccc;
       border-radius: 3px;
     }
-
-    /* Use flexbox to align buttons on the same line */
     .button-container {
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-
-    button.add-question,
-    button.save-questions,
-    button.cancel {
+    button.add-question, button.save-questions, button.cancel {
       background-color: #e01979;
       color: #fff;
       border: none;
@@ -59,38 +49,81 @@
       border-radius: 3px;
       cursor: pointer;
     }
-
     button.cancel {
       background-color: #ccc;
       color: #230456;
     }
-
     button:hover {
       background-color: #2d7878;
     }
-
-    input[name="timers[]"],
-  input[name="marks[]"] {
-    width: 70px; /* Adjust the width as needed */
-    padding: 5px;
-  }
+    input[name="timers[]"], input[name="marks[]"] {
+      width: 70px;
+      padding: 5px;
+    }
+    .mcq-options, .coding-fields {
+      margin-left: 20px;
+    }
+    .mcq-option {
+      margin-bottom: 10px;
+    }
+    .hidden {
+      display: none;
+    }
   </style>
 </head>
 <body>
   <h1>Add Questions and Answers</h1>
-  <form action="/admin/save-questions" method="post">
+  <form action="/admin/save-questions" method="post" id="question-form" enctype="multipart/form-data">
     <input type="hidden" name="mainTopicId" value="<%= mainTopicId %>">
     <input type="hidden" name="subTopicId" value="<%= subTopicId %>">
 
-    <!-- Container for dynamically added questions -->
     <div id="questions-container">
-      <!-- Initial question fields -->
       <div class="question">
-        <label for="question">Question:</label>
-        <textarea name="questions[]" rows="4" cols="50" required></textarea><br>
+        <label for="questionType">Question Type:</label>
+        <select name="questionType[]" onchange="toggleQuestionFields(this)">
+          <option value="subjective">Subjective</option>
+          <option value="coding">Coding</option>
+          <option value="mcq">MCQ</option>
+        </select><br>
 
-        <label for="answer">Answer:</label>
-        <textarea name="answers[]" rows="4" cols="50" required></textarea><br>
+        <label for="question">Question:</label>
+        <textarea name="questions[]" rows="4" cols="50" style="white-space: pre-wrap;" required></textarea><br>
+
+        <div class="subjective-fields">
+          <label for="answer">Answer:</label>
+          <textarea name="answers[]" rows="4" cols="50" style="white-space: pre-wrap;"></textarea><br>
+        </div>
+
+        <div class="coding-fields hidden">
+          <label for="image">Upload Image (optional):</label>
+          <input type="file" name="image0" accept="image/jpeg,image/jpg,image/png"><br>
+        </div>
+
+        <div class="mcq-fields hidden">
+          <label>Options:</label>
+          <div class="mcq-options">
+            <div class="mcq-option">
+              <input type="text" name="options[0][]" placeholder="Option A">
+            </div>
+            <div class="mcq-option">
+              <input type="text" name="options[0][]" placeholder="Option B">
+            </div>
+            <div class="mcq-option">
+              <input type="text" name="options[0][]" placeholder="Option C">
+            </div>
+            <div class="mcq-option">
+              <input type="text" name="options[0][]" placeholder="Option D">
+            </div>
+          </div>
+          <label for="correctOptionIndex">Correct Option:</label>
+          <select name="correctOptionIndex[]">
+            <option value="">Select Correct Option</option>
+            <option value="0">Option A</option>
+            <option value="1">Option B</option>
+            <option value="2">Option C</option>
+            <option value="3">Option D</option>
+          </select><br>
+        </div>
 
         <label for="timer">Timer Duration (minutes):</label>
         <input type="number" name="timers[]" required min="0"><br>
@@ -100,7 +133,6 @@
       </div>
     </div>
 
-    <!-- Button container for both buttons -->
     <div class="button-container">
       <button type="button" class="add-question">Add some more Question</button>
       <button type="submit" class="save-questions">Save Questions</button>
@@ -111,36 +143,111 @@
   </form>
 
   <script>
-    // JavaScript code for adding more question fields
+    function toggleQuestionFields(select) {
+      const questionDiv = select.closest('.question');
+      const subjectiveFields = questionDiv.querySelector('.subjective-fields');
+      const codingFields = questionDiv.querySelector('.coding-fields');
+      const mcqFields = questionDiv.querySelector('.mcq-fields');
+      const answerTextarea = subjectiveFields.querySelector('textarea[name="answers[]"]');
+      const mcqOptions = mcqFields.querySelectorAll('input[name^="options"]');
+      const correctOptionSelect = mcqFields.querySelector('select[name="correctOptionIndex[]"]');
+
+      if (select.value === 'mcq') {
+        subjectiveFields.classList.add('hidden');
+        codingFields.classList.add('hidden');
+        mcqFields.classList.remove('hidden');
+        answerTextarea.removeAttribute('required');
+        mcqOptions.forEach(opt => opt.setAttribute('required', 'true'));
+        correctOptionSelect.setAttribute('required', 'true');
+      } else if (select.value === 'coding') {
+        subjectiveFields.classList.remove('hidden');
+        codingFields.classList.remove('hidden');
+        mcqFields.classList.add('hidden');
+        answerTextarea.setAttribute('required', 'true');
+        mcqOptions.forEach(opt => opt.removeAttribute('required'));
+        correctOptionSelect.removeAttribute('required');
+      } else {
+        subjectiveFields.classList.remove('hidden');
+        codingFields.classList.add('hidden');
+        mcqFields.classList.add('hidden');
+        answerTextarea.setAttribute('required', 'true');
+        mcqOptions.forEach(opt => opt.removeAttribute('required'));
+        correctOptionSelect.removeAttribute('required');
+      }
+    }
+
     document.querySelector('button.add-question').addEventListener('click', function () {
       const container = document.getElementById('questions-container');
+      const questionCount = container.querySelectorAll('.question').length;
       const newQuestionDiv = document.createElement('div');
       newQuestionDiv.classList.add('question');
 
       newQuestionDiv.innerHTML = `
-        <label for="question">Question:</label>
-        <textarea name="questions[]" rows="4" cols="50" required></textarea><br>
+        <label for="questionType">Question Type:</label>
+        <select name="questionType[]" onchange="toggleQuestionFields(this)">
+          <option value="subjective">Subjective</option>
+          <option value="coding">Coding</option>
+          <option value="mcq">MCQ</option>
+        </select><br>
 
-        <label for="answer">Answer:</label>
-        <textarea name="answers[]" rows="4" cols="50" required></textarea><br>
+        <label for="question">Question:</label>
+        <textarea name="questions[]" rows="4" cols="50" style="white-space: pre-wrap;" required></textarea><br>
+
+        <div class="subjective-fields">
+          <label for="answer">Answer:</label>
+          <textarea name="answers[]" rows="4" cols="50" style="white-space: pre-wrap;"></textarea><br>
+        </div>
+
+        <div class="coding-fields hidden">
+          <label for="image">Upload Image (optional):</label>
+          <input type="file" name="image${questionCount}" accept="image/jpeg,image/jpg,image/png"><br>
+        </div>
+
+        <div class="mcq-fields hidden">
+          <label>Options:</label>
+          <div class="mcq-options">
+            <div class="mcq-option">
+              <input type="text" name="options[${questionCount}][]" placeholder="Option A">
+            </div>
+            <div class="mcq-option">
+              <input type="text" name="options[${questionCount}][]" placeholder="Option B">
+            </div>
+            <div class="mcq-option">
+              <input type="text" name="options[${questionCount}][]" placeholder="Option C">
+            </div>
+            <div class="mcq-option">
+              <input type="text" name="options[${questionCount}][]" placeholder="Option D">
+            </div>
+          </div>
+          <label for="correctOptionIndex">Correct Option:</label>
+          <select name="correctOptionIndex[]">
+            <option value="">Select Correct Option</option>
+            <option value="0">Option A</option>
+            <option value="1">Option B</option>
+            <option value="2">Option C</option>
+            <option value="3">Option D</option>
+          </select><br>
+        </div>
 
         <label for="timer">Timer Duration (minutes):</label>
         <input type="number" name="timers[]" required><br>
 
         <label for="marks">Marks:</label>
         <input type="number" name="marks[]" required><br>
-        
-        <!-- Button to remove this question -->
+
         <button type="button" class="remove-question">Remove</button>
       `;
 
       container.appendChild(newQuestionDiv);
 
-      // Add a click event listener for the remove button
       const removeButton = newQuestionDiv.querySelector('.remove-question');
       removeButton.addEventListener('click', function () {
-        container.removeChild(newQuestionDiv); // Remove the question div when the button is clicked
+        container.removeChild(newQuestionDiv);
       });
+    });
+
+    document.getElementById('question-form').addEventListener('submit', (e) => {
+      console.log('Form submission triggered');
     });
   </script>
 </body>
